@@ -1,95 +1,20 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0b1220">
-  <meta name="description" content="RC Car Rental Operator Dashboard">
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css">
-  <title>RC Car Rental</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b7db8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>KAS RC Arena</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/assets/icon-192.png" />
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <div class="eyebrow">OPERATOR</div>
-      <h1>RC Car Rental</h1>
-    </div>
-    <button class="admin-btn" id="adminBtn" type="button" aria-label="Open Admin">
-      <span>⚙</span><span>Admin</span>
-    </button>
-  </header>
-
-  <main class="wrap">
-    <section class="summary">
-      <div><strong id="activeCount">0</strong><span>Active</span></div>
-      <div><strong id="readyCount">0</strong><span>Ready</span></div>
-      <div><strong id="todayRevenue">₹0</strong><span>Today</span></div>
-    </section>
-
-    <div class="section-head">
-      <div>
-        <h2>Cars</h2>
-        <p>Tap a ready car to start a ride.</p>
-      </div>
-      <button class="sound-test" id="soundTest" type="button">Test Ringer</button>
-    </div>
-
-    <section id="cars" class="cars-grid"></section>
-
-    <section class="today">
-      <div class="section-head compact">
-        <div><h2>Today</h2><p id="rideCountText">0 rides</p></div>
-      </div>
-      <div id="rideList" class="ride-list"></div>
-    </section>
-  </main>
-
-  <div class="modal hidden" id="rideModal" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <div class="modal-head"><div><div class="eyebrow">NEW RIDE</div><h2 id="rideCarTitle">Car 01</h2></div><button class="icon-btn" data-close="rideModal">×</button></div>
-      <label>Customer name<input id="customerName" maxlength="40" placeholder="Optional"></label>
-      <label>Package<select id="packageSelect"></select></label>
-      <label>Payment<select id="paymentSelect"><option>Cash</option><option>UPI</option></select></label>
-      <button class="primary" id="startRide">Start Ride</button>
-    </div>
-  </div>
-
-  <div class="modal hidden" id="extendModal" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <div class="modal-head"><div><div class="eyebrow">EXTEND RIDE</div><h2 id="extendCarTitle">Car 01</h2></div><button class="icon-btn" data-close="extendModal">×</button></div>
-      <label>Add time<select id="extendSelect"></select></label>
-      <button class="primary" id="confirmExtend">Add Time</button>
-    </div>
-  </div>
-
-  <div class="modal hidden" id="adminModal" role="dialog" aria-modal="true">
-    <div class="modal-card wide">
-      <div class="modal-head"><div><div class="eyebrow">ADMIN</div><h2>Business Settings</h2></div><button class="icon-btn" data-close="adminModal">×</button></div>
-      <div class="admin-grid">
-        <div>
-          <h3>Cars / Fleet</h3>
-          <div id="carEditor"></div>
-          <button class="secondary" id="addCar">+ Add Car</button>
-        </div>
-        <div>
-          <h3>Pricing Packages</h3>
-          <div id="packageEditor"></div>
-          <button class="secondary" id="addPackage">+ Add Package</button>
-        </div>
-        <div>
-          <h3>Alarm</h3>
-          <label>Repeat<select id="alarmRepeat"><option value="1">1 time</option><option value="2">2 times</option><option value="3">3 times</option></select></label>
-          <p class="hint">The ringer is designed to be noticeably louder and longer than the old chime. Actual phone media volume is controlled by the device.</p>
-          <button class="secondary" id="adminSoundTest">Test Loud Ringer</button>
-        </div>
-      </div>
-      <button class="primary" id="saveSettings">Save Settings</button>
-    </div>
-  </div>
-
-  <audio id="ringer" src="assets/time-over-ringer.wav" preload="auto"></audio>
+  <div id="app"></div>
   <div id="toast" class="toast"></div>
-  <script src="app.js"></script>
+  <div id="modal-root"></div>
+  <script type="module" src="/js/app.js"></script>
 </body>
 </html>

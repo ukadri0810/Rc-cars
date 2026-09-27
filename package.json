@@ -1,0 +1,9 @@
+{
+  "name": "kas-rc-arena",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KAS RC Arena - offline-first PWA for RC fleet, rides, batteries, queue and owner management",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
