@@ -93,22 +93,68 @@ function endRide(id){
 }
 
 function renderAdmin(){
+  // Fleet editor
+  $("#carEditor").innerHTML=data.cars.map((c,i)=>{
+    const busy=!!activeRide(c.id);
+    return `<div class="car-edit-line">
+      <input data-c-name="${i}" value="${esc(c.name)}" maxlength="30" placeholder="Car name">
+      <button class="remove" data-car-remove="${i}" type="button" ${busy||data.cars.length<=1?"disabled":""}>×</button>
+    </div>`;
+  }).join("");
+
+  // Pricing editor
   $("#packageEditor").innerHTML=data.packages.map((p,i)=>`
     <div class="package-line">
-      <input data-p-name="${i}" value="${esc(p.name)}" placeholder="Name">
+      <input data-p-name="${i}" value="${esc(p.name)}" maxlength="30" placeholder="Name">
       <input data-p-min="${i}" type="number" min="1" value="${p.minutes}" aria-label="Minutes">
       <input data-p-price="${i}" type="number" min="0" value="${p.price}" aria-label="Price">
-      <button class="remove" data-remove="${i}" type="button">×</button>
+      <button class="remove" data-remove="${i}" type="button" ${data.packages.length<=1?"disabled":""}>×</button>
     </div>`).join("");
+
   $("#alarmRepeat").value=String(data.settings.alarmRepeat||2);
-  document.querySelectorAll("[data-remove]").forEach(b=>b.onclick=()=>{data.packages.splice(Number(b.dataset.remove),1);renderAdmin()});
+
+  document.querySelectorAll("[data-remove]").forEach(b=>b.onclick=()=>{
+    data.packages.splice(Number(b.dataset.remove),1);
+    renderAdmin();
+  });
+
+  document.querySelectorAll("[data-car-remove]").forEach(b=>b.onclick=()=>{
+    const i=Number(b.dataset.carRemove);
+    if(data.cars.length<=1 || activeRide(data.cars[i].id)) return;
+    data.cars.splice(i,1);
+    save(); renderAdmin(); render();
+  });
 }
 $("#adminBtn").onclick=()=>{renderAdmin();open("adminModal")};
-$("#addPackage").onclick=()=>{data.packages.push({id:"p"+Date.now(),name:"New Package",minutes:5,price:200});renderAdmin()};
+
+$("#addCar").onclick=()=>{
+  const next=data.cars.length+1;
+  data.cars.push({id:"c"+Date.now(),name:`Car ${String(next).padStart(2,"0")}`});
+  renderAdmin();
+  toast("New car added — edit its name before saving");
+};
+
+$("#addPackage").onclick=()=>{
+  data.packages.push({id:"p"+Date.now(),name:"New Package",minutes:5,price:200});
+  renderAdmin();
+};
+
 $("#saveSettings").onclick=()=>{
-  data.packages.forEach((p,i)=>{p.name=document.querySelector(`[data-p-name="${i}"]`).value.trim()||"Package";p.minutes=Math.max(1,Number(document.querySelector(`[data-p-min="${i}"]`).value)||1);p.price=Math.max(0,Number(document.querySelector(`[data-p-price="${i}"]`).value)||0)});
+  // Save car names
+  data.cars.forEach((c,i)=>{
+    const input=document.querySelector(`[data-c-name="${i}"]`);
+    if(input) c.name=input.value.trim() || `Car ${String(i+1).padStart(2,"0")}`;
+  });
+
+  // Save pricing
+  data.packages.forEach((p,i)=>{
+    p.name=document.querySelector(`[data-p-name="${i}"]`).value.trim()||"Package";
+    p.minutes=Math.max(1,Number(document.querySelector(`[data-p-min="${i}"]`).value)||1);
+    p.price=Math.max(0,Number(document.querySelector(`[data-p-price="${i}"]`).value)||0);
+  });
+
   data.settings.alarmRepeat=Number($("#alarmRepeat").value);
-  save();close("adminModal");render();toast("Settings saved");
+  save(); close("adminModal"); render(); toast("All settings saved");
 };
 
 const ringer=$("#ringer");
