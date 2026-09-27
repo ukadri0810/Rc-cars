@@ -48,6 +48,7 @@
       </div>
     </div>
     <div class="top-actions">
+      <div class="sync-status" id="syncStatus" role="status" aria-live="polite"><span class="sync-dot"></span><span id="syncStatusText">Local</span></div>
       <button class="admin-btn hidden" id="installBtn" type="button" aria-label="Install KAS RC Arena"><svg><use href="#i-install"/></svg><span class="desktop-label">Install</span></button>
       <button class="admin-btn sound-only" id="soundTest" type="button" aria-label="Test ringer"><svg><use href="#i-volume"/></svg><span class="desktop-label">Ringer</span></button>
       <button class="admin-btn hidden" id="adminBtn" type="button" aria-label="Open Owner Console"><svg><use href="#i-settings"/></svg><span class="desktop-label">Owner Console</span></button>
@@ -71,6 +72,12 @@
     <section class="view active" id="view-arena">
       <div class="section-head">
         <div><h2>Fleet</h2><p>Tap a ready vehicle to start billing a ride.</p></div>
+      </div>
+      <div class="status-legend" aria-label="Ride status colours">
+        <span><i class="legend-dot running-dot"></i>Running</span>
+        <span><i class="legend-dot ending-dot"></i>Ending soon</span>
+        <span><i class="legend-dot paused-dot"></i>Paused</span>
+        <span><i class="legend-dot over-dot"></i>Time up</span>
       </div>
       <section id="fleet" class="cars-grid"></section>
 

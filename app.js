@@ -110,7 +110,63 @@ async function initState(){
   try{const old=JSON.parse(localStorage.getItem(LEGACY_KEY)||"null");const migrated=migrateLegacy(old);if(migrated){data=migrated;await dbSet(data);return}}catch{}
   data=structuredClone(DEFAULT);await dbSet(data);
 }
-function save(){dbSet(data);}
+const SYNC_DIRTY_KEY="kas-sync-dirty";
+let pendingRemoteState=null;
+let syncBusy=false;
+function markLocalDirty(){
+  try{localStorage.setItem(SYNC_DIRTY_KEY,String(Date.now()))}catch{}
+  updateSyncStatus();
+}
+function clearLocalDirty(){try{localStorage.removeItem(SYNC_DIRTY_KEY)}catch{}updateSyncStatus()}
+function hasLocalDirty(){try{return !!localStorage.getItem(SYNC_DIRTY_KEY)}catch{return false}}
+let persistQueue=Promise.resolve();
+function persistLocalSnapshot(){
+  const snapshot=structuredClone(data);
+  persistQueue=persistQueue.catch(()=>{}).then(()=>dbSet(snapshot));
+  return persistQueue;
+}
+function save(){persistLocalSnapshot();markLocalDirty();scheduleBackgroundSync();}
+function isEditable(el=document.activeElement){return !!el&&(el.matches?.("input,textarea,select,[contenteditable=true]")||el.isContentEditable)}
+function isUserInteracting(){
+  if(isEditable()) return true;
+  return $$(".modal:not(.hidden)").some(m=>m.querySelector("input:focus,textarea:focus,select:focus,[contenteditable=true]:focus"));
+}
+function updateSyncStatus(forced){
+  const el=$("#syncStatus"),text=$("#syncStatusText");if(!el||!text)return;
+  el.classList.remove("offline","syncing","error","pending");
+  if(forced==="syncing"){el.classList.add("syncing");text.textContent="Syncing";return}
+  if(forced==="error"){el.classList.add("error");text.textContent="Sync error";return}
+  if(!navigator.onLine){el.classList.add("offline");text.textContent="Offline · saved locally";return}
+  if(hasLocalDirty()){el.classList.add("pending");text.textContent=window.KAS_CLOUD_SYNC?"Pending sync":"Local saved";return}
+  text.textContent=window.KAS_CLOUD_SYNC?"Synced":"Local";
+}
+let syncTimer=null;
+function scheduleBackgroundSync(delay=1200){
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>backgroundSync(),delay);
+}
+async function backgroundSync(){
+  if(syncBusy||!navigator.onLine||!window.KAS_CLOUD_SYNC)return updateSyncStatus();
+  if(isUserInteracting()) return scheduleBackgroundSync(2500);
+  syncBusy=true;updateSyncStatus("syncing");
+  try{
+    const adapter=window.KAS_CLOUD_SYNC;
+    if(hasLocalDirty()&&typeof adapter.pushState==="function"){await adapter.pushState(structuredClone(data));clearLocalDirty()}
+    if(typeof adapter.pullState==="function"){const remote=await adapter.pullState();if(remote){if(isUserInteracting())pendingRemoteState=remote;else applyRemoteState(remote)}}
+    updateSyncStatus();
+  }catch(e){console.warn("Background sync failed",e);updateSyncStatus("error")}finally{syncBusy=false}
+}
+function applyRemoteState(remote){
+  if(!remote||typeof remote!=="object")return;
+  // Never replace live form DOM while a user is typing. This function is only called at a safe checkpoint.
+  data=mergeDefaults(remote);dbSet(data);pendingRemoteState=null;render();
+}
+function applyPendingRemoteWhenSafe(){if(pendingRemoteState&&!isUserInteracting())applyRemoteState(pendingRemoteState)}
+window.addEventListener("online",()=>{updateSyncStatus();scheduleBackgroundSync(300)});
+window.addEventListener("offline",()=>updateSyncStatus());
+window.addEventListener("focus",()=>{applyPendingRemoteWhenSafe();scheduleBackgroundSync(600)});
+document.addEventListener("focusout",()=>setTimeout(()=>{applyPendingRemoteWhenSafe();scheduleBackgroundSync(800)},50));
+setInterval(()=>{if(navigator.onLine&&!isUserInteracting())backgroundSync()},60000);
 function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("show"),1900)}
 let historyReady=false;
 function setHistory(view=memory.currentView,modal=null,mode="push"){
@@ -147,6 +203,9 @@ function nextRideNumber(){const n=Number(data.settings.nextRideNumber||1);data.s
 function todayRides(){return data.rides.filter(r=>r.date===localDateKey())}
 function paymentsTotal(r,method){return (r.payments||[]).filter(p=>!method||p.method===method).reduce((a,p)=>a+Number(p.amount||0),0)}
 function totalRevenue(rides){return rides.reduce((a,r)=>a+rideTotal(r),0)}
+function nextBatteryCode(){let n=1;const used=new Set(data.batteries.map(b=>String(b.code||"").toUpperCase()));while(used.has(`B${String(n).padStart(2,"0")}`))n++;return `B${String(n).padStart(2,"0")}`}
+function nextVehicleCode(){let n=1;const used=new Set(data.vehicles.map(v=>String(v.code||"").toUpperCase()));while(used.has(`VEH-${String(n).padStart(2,"0")}`))n++;return `VEH-${String(n).padStart(2,"0")}`}
+function focusOwnerField(selector){requestAnimationFrame(()=>{const el=$(selector);if(!el)return;el.classList.add("just-added");el.scrollIntoView({block:"center",behavior:"smooth"});setTimeout(()=>{el.focus?.();el.select?.()},250);setTimeout(()=>el.classList.remove("just-added"),1800)})}
 
 function render(){
   applyAccessUI();
@@ -192,7 +251,7 @@ function renderBatteries(){
   if(!$("#batterySummary")||!$("#batteryStation")) return;
   const counts={ready:0,installed:0,in_use:0,charging:0,needs_charge:0,maintenance:0};data.batteries.forEach(b=>counts[b.status]=(counts[b.status]||0)+1);
   $("#batterySummary").innerHTML=[['ready','Ready'],['in_use','In Use'],['charging','Charging'],['needs_charge','Needs Charge']].map(([k,l])=>`<div><strong>${counts[k]||0}</strong><span>${l}</span></div>`).join("");
-  $("#batteryStation").innerHTML=(!can("batteryActions")?`<div class="notice read-only-banner">Battery controls are read-only for this operator.</div>`:"")+data.batteries.map(b=>{const t=batteryType(b.typeId),v=vehicle(b.assignedVehicleId);const actions=!can("batteryActions")?"":b.status==="needs_charge"?`<button class="primary-mini" data-batt-action="charge" data-batt="${b.id}">Start Charging</button>`:b.status==="charging"?`<button class="primary-mini" data-batt-action="ready" data-batt="${b.id}">Mark Ready</button>`:b.status==="maintenance"?`<button class="primary-mini" data-batt-action="ready" data-batt="${b.id}">Return to Ready</button>`:b.status==="ready"?`<button data-batt-action="issue" data-batt="${b.id}">Report Issue</button>`:"";return `<article class="battery-card"><div class="battery-card-top"><div><h3>${esc(b.code)}</h3><p>${esc(t?.name||"Battery")} · ${esc(t?.voltage||"")} ${esc(t?.capacity||"")}</p></div><span class="battery-status">${esc(b.status.replaceAll("_"," "))}</span></div><p>${v?`Assigned: ${esc(v.name)}`:`Cycles: ${b.cycles||0} · Runtime: ${b.totalRuntimeMin||0} min`}</p><div class="actions">${actions}</div></article>`}).join("");
+  $("#batteryStation").innerHTML=(!can("batteryActions")?`<div class="notice read-only-banner">Battery controls are read-only for this operator.</div>`:"")+data.batteries.map(b=>{const t=batteryType(b.typeId),v=vehicle(b.assignedVehicleId);const actions=!can("batteryActions")?"":b.status==="needs_charge"?`<button class="primary-mini" data-batt-action="charge" data-batt="${b.id}">Start Charging</button>`:b.status==="charging"?`<button class="primary-mini" data-batt-action="ready" data-batt="${b.id}">Mark Ready</button>`:b.status==="maintenance"?`<button class="primary-mini" data-batt-action="ready" data-batt="${b.id}">Return to Ready</button>`:b.status==="ready"?`<button data-batt-action="issue" data-batt="${b.id}">Report Issue</button>`:"";return `<article class="battery-card battery-${esc(b.status)}"><div class="battery-card-top"><div><h3>${esc(b.code)}</h3><p>${esc(t?.name||"Battery")} · ${esc(t?.voltage||"")} ${esc(t?.capacity||"")}</p></div><span class="battery-status">${esc(b.status.replaceAll("_"," "))}</span></div><p>${v?`Assigned: ${esc(v.name)}`:`Cycles: ${b.cycles||0} · Runtime: ${b.totalRuntimeMin||0} min`}</p><div class="actions">${actions}</div></article>`}).join("");
   $$('[data-batt-action]').forEach(b=>b.onclick=()=>batteryAction(b.dataset.batt,b.dataset.battAction));
 }
 function updateQueueBadge(){const n=data.queue.length,e=$("#queueBadge");if(!e)return;e.textContent=n;e.classList.toggle("hidden",!n)}
@@ -252,6 +311,7 @@ function renderOwner(){
   if(memory.ownerTab==="staff")c.innerHTML=ownerStaff();
   if(memory.ownerTab==="settings")c.innerHTML=ownerSettings();
   if(memory.ownerTab==="backup")c.innerHTML=ownerBackup();
+  if(["fleet","batteries","pricing","staff","settings"].includes(memory.ownerTab)) c.insertAdjacentHTML("afterbegin",`<div class="owner-autosave-note">${svg("i-check")} Changes are saved locally when you leave a field. Save buttons are kept for confirmation.</div>`);
   const ownerNames={overview:"Overview",fleet:"Fleet & Vehicles",batteries:"Battery Management",pricing:"Pricing & Packages",maintenance:"Maintenance",staff:"Staff & Access",settings:"Business Settings",backup:"Backup & Data"};if($("#ownerConsoleTitle"))$("#ownerConsoleTitle").textContent=ownerNames[memory.ownerTab]||"Owner Console";
   $$(`[data-owner-goto]`).forEach(b=>b.onclick=()=>{memory.ownerTab=b.dataset.ownerGoto;renderOwner();$("#ownerContent")?.scrollTo({top:0,behavior:"smooth"})});
   bindOwnerActions();
@@ -262,33 +322,79 @@ function ownerBatteries(){return `<div class="owner-grid two"><div class="panel"
 function ownerPricing(){return `<div class="owner-grid two"><div class="panel"><h3>Ride Packages</h3>${data.packages.map(p=>`<div class="editor-row"><div class="editor-grid"><input data-p-name="${p.id}" value="${esc(p.name)}"><select data-p-prof="${p.id}">${data.pricingProfiles.map(x=>`<option value="${x.id}" ${x.id===p.profileId?"selected":""}>${esc(x.name)}</option>`).join("")}</select><input data-p-min="${p.id}" type="number" min="1" value="${p.minutes}"><input data-p-price="${p.id}" type="number" min="0" value="${p.price}"></div><div class="editor-actions"><button class="mini-btn" data-save-package="${p.id}">Save</button><button class="mini-btn danger" data-delete-package="${p.id}" ${data.packages.length<=1?"disabled":""}>Delete</button></div></div>`).join("")}<button class="secondary" data-add-package>${svg("i-plus")} Add Package</button><hr class="sep"><h3>Pricing Profiles</h3>${data.pricingProfiles.map(p=>`<div class="add-row"><input data-price-profile="${p.id}" value="${esc(p.name)}"><button class="mini-btn" data-save-price-profile="${p.id}">Save</button></div>`).join("")}<button class="secondary" style="margin-top:8px" data-add-price-profile>${svg("i-plus")} Add Profile</button></div><div class="panel"><h3>Extension Options</h3>${data.extensions.map(e=>`<div class="editor-row"><div class="editor-grid"><input data-e-name="${e.id}" value="${esc(e.name)}"><select data-e-prof="${e.id}">${data.extensionProfiles.map(x=>`<option value="${x.id}" ${x.id===e.profileId?"selected":""}>${esc(x.name)}</option>`).join("")}</select><input data-e-min="${e.id}" type="number" min="1" value="${e.minutes}"><input data-e-price="${e.id}" type="number" min="0" value="${e.price}"></div><div class="editor-actions"><button class="mini-btn" data-save-extension="${e.id}">Save</button><button class="mini-btn danger" data-delete-extension="${e.id}" ${data.extensions.length<=1?"disabled":""}>Delete</button></div></div>`).join("")}<button class="secondary" data-add-extension>${svg("i-plus")} Add Extension</button><hr class="sep"><h3>Extension Profiles</h3>${data.extensionProfiles.map(p=>`<div class="add-row"><input data-ext-profile="${p.id}" value="${esc(p.name)}"><button class="mini-btn" data-save-ext-profile="${p.id}">Save</button></div>`).join("")}<button class="secondary" style="margin-top:8px" data-add-ext-profile>${svg("i-plus")} Add Profile</button></div></div>`}
 function ownerMaintenance(){const list=data.maintenance.slice().reverse();return `<div class="panel"><h3>Maintenance Log</h3><div class="table-scroll"><table class="simple-table"><thead><tr><th>Vehicle</th><th>Issue</th><th>Reported</th><th>Status</th></tr></thead><tbody>${list.map(m=>`<tr><td>${esc(m.vehicleName)}</td><td>${esc(m.reason)}${m.note?` · ${esc(m.note)}`:""}</td><td>${new Date(m.reportedAt).toLocaleString()}</td><td>${m.resolvedAt?"Resolved":"Open"}</td></tr>`).join("")||`<tr><td colspan="4">No maintenance records yet.</td></tr>`}</tbody></table></div></div>`}
 function ownerStaff(){return `<div class="panel"><div class="section-head compact"><div><h3>Operators & Access</h3><p>Each operator signs in separately. Enable only the features they need.</p></div><button class="secondary compact-btn" data-add-staff>${svg("i-plus")} Add Operator</button></div>${data.staff.map(s=>`<div class="staff-card"><div class="staff-head"><div><strong>${esc(s.name)}</strong><span>${s.active!==false?"Active":"Disabled"}</span></div><div class="editor-actions"><button class="mini-btn" data-save-staff="${s.id}">Save</button><button class="mini-btn danger" data-delete-staff="${s.id}" ${data.staff.length<=1?"disabled":""}>Delete</button></div></div><div class="editor-grid" style="margin-top:9px"><input data-staff-name="${s.id}" value="${esc(s.name)}" placeholder="Operator name"><input data-staff-pin="${s.id}" value="${esc(s.pin)}" inputmode="numeric" maxlength="8" placeholder="PIN"></div><label class="permission-item" style="margin-top:8px"><input type="checkbox" data-staff-active="${s.id}" ${s.active!==false?"checked":""}><div><strong>Account active</strong><span>Allow this operator to sign in</span></div></label><div class="permission-grid">${Object.entries(PERMISSIONS).map(([key,m])=>`<label class="permission-item"><input type="checkbox" data-staff-perm="${s.id}" data-perm-key="${key}" ${s.permissions?.[key]?"checked":""}><div><strong>${esc(m.label)}</strong><span>${esc(m.desc)}</span></div></label>`).join("")}</div></div>`).join("")}</div>`}
-function ownerSettings(){return `<div class="owner-grid two"><div class="panel"><h3>Business</h3><label>Business name<input id="settingBusiness" value="${esc(data.business.name)}"></label><label>Owner PIN<input id="settingPin" type="password" inputmode="numeric" value="${esc(data.settings.ownerPin)}"></label><button class="primary" data-save-settings>Save Business Settings</button></div><div class="panel"><h3>Ride Timer</h3><label>Warning before time over (seconds)<input id="settingWarning" type="number" min="10" max="300" value="${data.settings.warningSeconds}"></label><label>Alarm repeat count<input id="settingRepeat" type="number" min="1" max="5" value="${data.settings.alarmRepeat}"></label><button class="secondary" data-owner-sound>${svg("i-volume")} Test Ringer</button></div></div>`}
+function ownerSettings(){return `<div class="owner-grid two"><div class="panel"><h3>Business</h3><label>Business name<input id="settingBusiness" value="${esc(data.business.name)}"></label><label>Owner PIN<input id="settingPin" type="password" inputmode="numeric" value="${esc(data.settings.ownerPin)}"></label><button class="primary" data-save-settings>Save Business Settings</button></div><div class="panel"><h3>Ride Timer</h3><label>Warning before time over (seconds)<input id="settingWarning" type="number" min="10" max="300" value="${data.settings.warningSeconds}"></label><label>Alarm repeat count<input id="settingRepeat" type="number" min="1" max="5" value="${data.settings.alarmRepeat}"></label><div class="editor-actions settings-actions"><button class="secondary" data-owner-sound>${svg("i-volume")} Test Ringer</button><button class="primary compact-primary" data-save-settings>Save Timer Settings</button></div></div></div>`}
 function ownerBackup(){return `<div class="owner-grid two"><div class="panel"><h3>Backup</h3><p class="hint">This build stores business data locally on this device using IndexedDB. Export backups regularly until Firebase is connected.</p><div class="backup-actions"><button class="secondary" data-export>${svg("i-download")} Export JSON Backup</button><button class="secondary" data-import>${svg("i-upload")} Import Backup</button></div></div><div class="panel danger-zone"><h3>Reset Local Data</h3><p class="hint">Deletes ride history and returns the app to its initial local setup.</p><button class="danger-primary" data-reset>Reset Everything</button></div></div>`}
+function commitOwnerField(el){
+  if(!el||!memory.ownerUnlocked)return false;
+  let changed=false,id;
+  const val=()=>el.value?.trim?.()??"";
+  if((id=el.dataset.vName)){const x=vehicle(id);if(x){x.name=val()||x.name;changed=true}}
+  else if((id=el.dataset.vCode)){const x=vehicle(id);if(x){const code=val().toUpperCase()||x.code;if(!data.vehicles.some(y=>y.id!==id&&String(y.code).toUpperCase()===code)){x.code=code;changed=true}}}
+  else if((id=el.dataset.vType)){const x=vehicle(id);if(x){x.typeId=el.value;changed=true}}
+  else if((id=el.dataset.vPrice)){const x=vehicle(id);if(x){x.pricingProfileId=el.value;changed=true}}
+  else if((id=el.dataset.vExt)){const x=vehicle(id);if(x){x.extensionProfileId=el.value;changed=true}}
+  else if((id=el.dataset.vBtype)){const x=vehicle(id);if(x){x.batteryTypeId=el.value;const assigned=battery(x.currentBatteryId);if(assigned&&assigned.typeId!==x.batteryTypeId){assigned.status="ready";assigned.assignedVehicleId=null;x.currentBatteryId=null}changed=true}}
+  else if((id=el.dataset.typeName)){const x=data.vehicleTypes.find(y=>y.id===id);if(x){x.name=val()||x.name;changed=true}}
+  else if((id=el.dataset.bCode)){const x=battery(id);if(x){const code=val().toUpperCase()||x.code;if(!data.batteries.some(y=>y.id!==id&&String(y.code).toUpperCase()===code)){x.code=code;changed=true}}}
+  else if((id=el.dataset.bType)){const x=battery(id);if(x){x.typeId=el.value;changed=true}}
+  else if((id=el.dataset.btName)){const x=batteryType(id);if(x){x.name=val()||x.name;changed=true}}
+  else if((id=el.dataset.btVolt)){const x=batteryType(id);if(x){x.voltage=val();changed=true}}
+  else if((id=el.dataset.btCap)){const x=batteryType(id);if(x){x.capacity=val();changed=true}}
+  else if((id=el.dataset.btConn)){const x=batteryType(id);if(x){x.connector=val();changed=true}}
+  else if((id=el.dataset.pName)){const x=packageBy(id);if(x){x.name=val()||x.name;changed=true}}
+  else if((id=el.dataset.pProf)){const x=packageBy(id);if(x){x.profileId=el.value;changed=true}}
+  else if((id=el.dataset.pMin)){const x=packageBy(id);if(x){x.minutes=Math.max(1,Number(el.value)||1);changed=true}}
+  else if((id=el.dataset.pPrice)){const x=packageBy(id);if(x){x.price=Math.max(0,Number(el.value)||0);changed=true}}
+  else if((id=el.dataset.eName)){const x=extensionBy(id);if(x){x.name=val()||x.name;changed=true}}
+  else if((id=el.dataset.eProf)){const x=extensionBy(id);if(x){x.profileId=el.value;changed=true}}
+  else if((id=el.dataset.eMin)){const x=extensionBy(id);if(x){x.minutes=Math.max(1,Number(el.value)||1);changed=true}}
+  else if((id=el.dataset.ePrice)){const x=extensionBy(id);if(x){x.price=Math.max(0,Number(el.value)||0);changed=true}}
+  else if((id=el.dataset.priceProfile)){const x=data.pricingProfiles.find(y=>y.id===id);if(x){x.name=val()||x.name;changed=true}}
+  else if((id=el.dataset.extProfile)){const x=data.extensionProfiles.find(y=>y.id===id);if(x){x.name=val()||x.name;changed=true}}
+  else if((id=el.dataset.staffName)){const x=data.staff.find(y=>y.id===id);if(x){x.name=val()||x.name;changed=true}}
+  else if((id=el.dataset.staffPin)){const x=data.staff.find(y=>y.id===id);if(x){x.pin=val()||x.pin;changed=true}}
+  else if((id=el.dataset.staffActive)){const x=data.staff.find(y=>y.id===id);if(x){x.active=el.checked;changed=true}}
+  else if((id=el.dataset.staffPerm)){const x=data.staff.find(y=>y.id===id),k=el.dataset.permKey;if(x&&k){x.permissions[k]=el.checked;changed=true}}
+  else if(el.id==="settingBusiness"){data.business.name=val()||data.business.name;changed=true}
+  else if(el.id==="settingPin"){data.settings.ownerPin=val()||data.settings.ownerPin;changed=true}
+  else if(el.id==="settingWarning"){data.settings.warningSeconds=Math.min(300,Math.max(10,Number(el.value)||60));changed=true}
+  else if(el.id==="settingRepeat"){data.settings.alarmRepeat=Math.min(5,Math.max(1,Number(el.value)||2));changed=true}
+  if(changed){save(); if(id?.startsWith?.("op_"))renderLoginChoices();}
+  return changed;
+}
+let ownerAutosaveBound=false;
+function bindOwnerAutosave(){
+  if(ownerAutosaveBound)return;ownerAutosaveBound=true;
+  const root=$("#ownerContent");if(!root)return;
+  root.addEventListener("change",e=>{if(e.target.matches("select,input[type=checkbox]"))commitOwnerField(e.target)});
+  root.addEventListener("focusout",e=>{if(e.target.matches("input:not([type=checkbox]),textarea"))commitOwnerField(e.target)});
+}
 function bindOwnerActions(){
+  bindOwnerAutosave();
   $('[data-add-staff]')?.addEventListener('click',()=>{const i=data.staff.length+1;data.staff.push({id:uid("op"),name:`Operator ${i}`,pin:"1111",active:true,permissions:{arena:true,queue:true,rides:true,batteries:true,batteryActions:false,maintenance:false,viewRevenue:false}});save();renderOwner()});
   $$('[data-save-staff]').forEach(b=>b.onclick=()=>{const s=data.staff.find(x=>x.id===b.dataset.saveStaff);if(!s)return;s.name=$(`[data-staff-name="${s.id}"]`).value.trim()||s.name;s.pin=$(`[data-staff-pin="${s.id}"]`).value.trim()||"1111";s.active=$(`[data-staff-active="${s.id}"]`).checked;Object.keys(PERMISSIONS).forEach(k=>{const el=$(`[data-staff-perm="${s.id}"][data-perm-key="${k}"]`);s.permissions[k]=!!el?.checked});save();renderLoginChoices();renderOwner();toast("Operator access updated")});
   $$('[data-delete-staff]').forEach(b=>b.onclick=()=>{if(data.staff.length<=1)return;const st=data.staff.find(x=>x.id===b.dataset.deleteStaff);if(!confirm(`Delete ${st?.name||"this operator"}?`))return;data.staff=data.staff.filter(x=>x.id!==b.dataset.deleteStaff);save();renderLoginChoices();renderOwner();toast("Operator deleted")});
-  $$('[data-save-vehicle]').forEach(b=>b.onclick=()=>{const id=b.dataset.saveVehicle,v=vehicle(id);v.name=$(`[data-v-name="${id}"]`).value.trim()||v.name;v.code=$(`[data-v-code="${id}"]`).value.trim()||v.code;v.typeId=$(`[data-v-type="${id}"]`).value;v.pricingProfileId=$(`[data-v-price="${id}"]`).value;v.extensionProfileId=$(`[data-v-ext="${id}"]`).value;v.batteryTypeId=$(`[data-v-btype="${id}"]`).value;const assigned=battery(v.currentBatteryId);if(assigned&&assigned.typeId!==v.batteryTypeId){assigned.status="ready";assigned.assignedVehicleId=null;v.currentBatteryId=null}save();render();toast("Vehicle saved")});
+  $$('[data-save-vehicle]').forEach(b=>b.onclick=()=>{const id=b.dataset.saveVehicle,v=vehicle(id);if(!v)return;v.name=$(`[data-v-name="${id}"]`).value.trim()||v.name;const code=$(`[data-v-code="${id}"]`).value.trim().toUpperCase()||v.code;if(data.vehicles.some(x=>x.id!==id&&String(x.code).toUpperCase()===code))return toast("Vehicle code already exists");v.code=code;v.typeId=$(`[data-v-type="${id}"]`).value;v.pricingProfileId=$(`[data-v-price="${id}"]`).value;v.extensionProfileId=$(`[data-v-ext="${id}"]`).value;v.batteryTypeId=$(`[data-v-btype="${id}"]`).value;const assigned=battery(v.currentBatteryId);if(assigned&&assigned.typeId!==v.batteryTypeId){assigned.status="ready";assigned.assignedVehicleId=null;v.currentBatteryId=null}save();renderOwner();render();toast("Vehicle saved")});
   $$('[data-toggle-vehicle]').forEach(b=>b.onclick=()=>{const id=b.dataset.toggleVehicle,v=vehicle(id);if(!v)return;if(activeRide(id))return toast("Complete the active ride first");if(v.active!==false){if(!confirm(`Archive ${v.name}? Its ride history will be preserved.`))return;const bat=battery(v.currentBatteryId);if(bat){bat.status="ready";bat.assignedVehicleId=null}v.currentBatteryId=null;v.active=false;toast("Vehicle archived")}else{v.active=true;toast("Vehicle restored")}save();render();renderOwner()});
-  $('[data-add-vehicle]')?.addEventListener('click',()=>{const i=data.vehicles.length+1;data.vehicles.push({id:uid("veh"),code:`VEH-${String(i).padStart(2,"0")}`,name:`Vehicle ${i}`,typeId:data.vehicleTypes[0]?.id,pricingProfileId:data.pricingProfiles[0]?.id,extensionProfileId:data.extensionProfiles[0]?.id,batteryTypeId:data.batteryTypes[0]?.id,currentBatteryId:null,manualStatus:"available",active:true});save();renderOwner();render()});
-  $$('[data-save-type]').forEach(b=>b.onclick=()=>{const t=data.vehicleTypes.find(x=>x.id===b.dataset.saveType);t.name=$(`[data-type-name="${t.id}"]`).value.trim()||t.name;save();renderOwner();render()});
-  $('[data-add-type]')?.addEventListener('click',()=>{data.vehicleTypes.push({id:uid("type"),name:"New Vehicle Type",active:true});save();renderOwner()});
-  $$('[data-save-battery]').forEach(b=>b.onclick=()=>{const x=battery(b.dataset.saveBattery);x.code=$(`[data-b-code="${x.id}"]`).value.trim()||x.code;x.typeId=$(`[data-b-type="${x.id}"]`).value;save();renderOwner();render()});
+  $('[data-add-vehicle]')?.addEventListener('click',()=>{const id=uid("veh"),i=data.vehicles.length+1;data.vehicles.push({id,code:nextVehicleCode(),name:`Vehicle ${i}`,typeId:data.vehicleTypes[0]?.id,pricingProfileId:data.pricingProfiles[0]?.id,extensionProfileId:data.extensionProfiles[0]?.id,batteryTypeId:data.batteryTypes[0]?.id,currentBatteryId:null,manualStatus:"available",active:true});save();renderOwner();render();toast("Vehicle added — edit details and they will auto-save");focusOwnerField(`[data-v-name="${id}"]`)});
+  $$('[data-save-type]').forEach(b=>b.onclick=()=>{const t=data.vehicleTypes.find(x=>x.id===b.dataset.saveType);if(!t)return;t.name=$(`[data-type-name="${t.id}"]`).value.trim()||t.name;save();renderOwner();render();toast("Vehicle type saved")});
+  $('[data-add-type]')?.addEventListener('click',()=>{const id=uid("type");data.vehicleTypes.push({id,name:"New Vehicle Type",active:true});save();renderOwner();toast("Vehicle type added");focusOwnerField(`[data-type-name="${id}"]`)});
+  $$('[data-save-battery]').forEach(b=>b.onclick=()=>{const x=battery(b.dataset.saveBattery);if(!x)return;const code=$(`[data-b-code="${x.id}"]`).value.trim().toUpperCase()||x.code;if(data.batteries.some(y=>y.id!==x.id&&String(y.code).toUpperCase()===code))return toast("Battery code already exists");x.code=code;x.typeId=$(`[data-b-type="${x.id}"]`).value;save();renderOwner();render();toast("Battery saved")});
   $$('[data-delete-battery]').forEach(b=>b.onclick=()=>{const x=battery(b.dataset.deleteBattery);if(!x||x.assignedVehicleId)return;if(!confirm(`Delete battery ${x.code}?`))return;data.batteries=data.batteries.filter(v=>v.id!==x.id);save();renderOwner();render();toast("Battery deleted")});
-  $('[data-add-battery]')?.addEventListener('click',()=>{const i=data.batteries.length+1;data.batteries.push({id:uid("bat"),code:`B${String(i).padStart(2,"0")}`,typeId:data.batteryTypes[0]?.id,status:"ready",assignedVehicleId:null,cycles:0,totalRuntimeMin:0,notes:""});save();renderOwner();render()});
-  $$('[data-save-btype]').forEach(b=>b.onclick=()=>{const t=batteryType(b.dataset.saveBtype);t.name=$(`[data-bt-name="${t.id}"]`).value.trim()||t.name;t.voltage=$(`[data-bt-volt="${t.id}"]`).value.trim();t.capacity=$(`[data-bt-cap="${t.id}"]`).value.trim();t.connector=$(`[data-bt-conn="${t.id}"]`).value.trim();save();renderOwner();render()});
-  $('[data-add-btype]')?.addEventListener('click',()=>{data.batteryTypes.push({id:uid("bt"),name:"New Battery Type",voltage:"",capacity:"",connector:"",compatibleTypeIds:[]});save();renderOwner()});
-  $$('[data-save-package]').forEach(b=>b.onclick=()=>{const id=b.dataset.savePackage,p=packageBy(id);p.name=$(`[data-p-name="${id}"]`).value.trim()||p.name;p.profileId=$(`[data-p-prof="${id}"]`).value;p.minutes=Math.max(1,Number($(`[data-p-min="${id}"]`).value)||1);p.price=Math.max(0,Number($(`[data-p-price="${id}"]`).value)||0);save();renderOwner();render()});
+  $('[data-add-battery]')?.addEventListener('click',()=>{if(!data.batteryTypes.length)return toast("Add a battery type first");const id=uid("bat");data.batteries.push({id,code:nextBatteryCode(),typeId:data.batteryTypes[0]?.id,status:"ready",assignedVehicleId:null,cycles:0,totalRuntimeMin:0,notes:""});save();renderOwner();render();toast("Battery added — ready for use");focusOwnerField(`[data-b-code="${id}"]`)});
+  $$('[data-save-btype]').forEach(b=>b.onclick=()=>{const t=batteryType(b.dataset.saveBtype);if(!t)return;t.name=$(`[data-bt-name="${t.id}"]`).value.trim()||t.name;t.voltage=$(`[data-bt-volt="${t.id}"]`).value.trim();t.capacity=$(`[data-bt-cap="${t.id}"]`).value.trim();t.connector=$(`[data-bt-conn="${t.id}"]`).value.trim();save();renderOwner();render();toast("Battery type saved")});
+  $('[data-add-btype]')?.addEventListener('click',()=>{const id=uid("bt");data.batteryTypes.push({id,name:"New Battery Type",voltage:"",capacity:"",connector:"",compatibleTypeIds:[]});save();renderOwner();toast("Battery type added");focusOwnerField(`[data-bt-name="${id}"]`)});
+  $$('[data-save-package]').forEach(b=>b.onclick=()=>{const id=b.dataset.savePackage,p=packageBy(id);if(!p)return;p.name=$(`[data-p-name="${id}"]`).value.trim()||p.name;p.profileId=$(`[data-p-prof="${id}"]`).value;p.minutes=Math.max(1,Number($(`[data-p-min="${id}"]`).value)||1);p.price=Math.max(0,Number($(`[data-p-price="${id}"]`).value)||0);save();renderOwner();render();toast("Package saved")});
   $$('[data-delete-package]').forEach(b=>b.onclick=()=>{const p=packageBy(b.dataset.deletePackage);if(!p||!confirm(`Delete package ${p.name}? Existing ride amounts will remain in history.`))return;data.packages=data.packages.filter(x=>x.id!==b.dataset.deletePackage);save();renderOwner();render();toast("Package deleted")});
-  $('[data-add-package]')?.addEventListener('click',()=>{data.packages.push({id:uid("pkg"),profileId:data.pricingProfiles[0]?.id,name:"New Package",minutes:5,price:200,active:true});save();renderOwner()});
-  $$('[data-save-extension]').forEach(b=>b.onclick=()=>{const id=b.dataset.saveExtension,e=extensionBy(id);e.name=$(`[data-e-name="${id}"]`).value.trim()||e.name;e.profileId=$(`[data-e-prof="${id}"]`).value;e.minutes=Math.max(1,Number($(`[data-e-min="${id}"]`).value)||1);e.price=Math.max(0,Number($(`[data-e-price="${id}"]`).value)||0);save();renderOwner();render()});
+  $('[data-add-package]')?.addEventListener('click',()=>{if(!data.pricingProfiles.length)return toast("Add a pricing profile first");const id=uid("pkg");data.packages.push({id,profileId:data.pricingProfiles[0]?.id,name:"New Package",minutes:5,price:200,active:true});save();renderOwner();render();toast("Package added — edit name, time and price");focusOwnerField(`[data-p-name="${id}"]`)});
+  $$('[data-save-extension]').forEach(b=>b.onclick=()=>{const id=b.dataset.saveExtension,e=extensionBy(id);if(!e)return;e.name=$(`[data-e-name="${id}"]`).value.trim()||e.name;e.profileId=$(`[data-e-prof="${id}"]`).value;e.minutes=Math.max(1,Number($(`[data-e-min="${id}"]`).value)||1);e.price=Math.max(0,Number($(`[data-e-price="${id}"]`).value)||0);save();renderOwner();render();toast("Extension saved")});
   $$('[data-delete-extension]').forEach(b=>b.onclick=()=>{const e=extensionBy(b.dataset.deleteExtension);if(!e||!confirm(`Delete extension ${e.name}?`))return;data.extensions=data.extensions.filter(x=>x.id!==b.dataset.deleteExtension);save();renderOwner();toast("Extension deleted")});
-  $('[data-add-extension]')?.addEventListener('click',()=>{data.extensions.push({id:uid("ext"),profileId:data.extensionProfiles[0]?.id,name:"New Extension",minutes:2,price:80,active:true});save();renderOwner()});
-  $$('[data-save-price-profile]').forEach(b=>b.onclick=()=>{const p=data.pricingProfiles.find(x=>x.id===b.dataset.savePriceProfile);p.name=$(`[data-price-profile="${p.id}"]`).value.trim()||p.name;save();renderOwner();render()});
-  $('[data-add-price-profile]')?.addEventListener('click',()=>{data.pricingProfiles.push({id:uid("price"),name:"New Pricing Profile"});save();renderOwner()});
-  $$('[data-save-ext-profile]').forEach(b=>b.onclick=()=>{const p=data.extensionProfiles.find(x=>x.id===b.dataset.saveExtProfile);p.name=$(`[data-ext-profile="${p.id}"]`).value.trim()||p.name;save();renderOwner();render()});
-  $('[data-add-ext-profile]')?.addEventListener('click',()=>{data.extensionProfiles.push({id:uid("extp"),name:"New Extension Profile"});save();renderOwner()});
-  $('[data-save-settings]')?.addEventListener('click',()=>{data.business.name=$("#settingBusiness").value.trim()||"KAS RC Arena";data.settings.ownerPin=$("#settingPin").value.trim()||"1234";data.settings.warningSeconds=Math.min(300,Math.max(10,Number($("#settingWarning")?.value||60)));data.settings.alarmRepeat=Math.min(5,Math.max(1,Number($("#settingRepeat")?.value||2)));save();render();toast("Settings saved")});
+  $('[data-add-extension]')?.addEventListener('click',()=>{if(!data.extensionProfiles.length)return toast("Add an extension profile first");const id=uid("ext");data.extensions.push({id,profileId:data.extensionProfiles[0]?.id,name:"New Extension",minutes:2,price:80,active:true});save();renderOwner();toast("Extension added");focusOwnerField(`[data-e-name="${id}"]`)});
+  $$('[data-save-price-profile]').forEach(b=>b.onclick=()=>{const p=data.pricingProfiles.find(x=>x.id===b.dataset.savePriceProfile);if(!p)return;p.name=$(`[data-price-profile="${p.id}"]`).value.trim()||p.name;save();renderOwner();render();toast("Pricing profile saved")});
+  $('[data-add-price-profile]')?.addEventListener('click',()=>{const id=uid("price");data.pricingProfiles.push({id,name:"New Pricing Profile"});save();renderOwner();toast("Pricing profile added");focusOwnerField(`[data-price-profile="${id}"]`)});
+  $$('[data-save-ext-profile]').forEach(b=>b.onclick=()=>{const p=data.extensionProfiles.find(x=>x.id===b.dataset.saveExtProfile);if(!p)return;p.name=$(`[data-ext-profile="${p.id}"]`).value.trim()||p.name;save();renderOwner();render();toast("Extension profile saved")});
+  $('[data-add-ext-profile]')?.addEventListener('click',()=>{const id=uid("extp");data.extensionProfiles.push({id,name:"New Extension Profile"});save();renderOwner();toast("Extension profile added");focusOwnerField(`[data-ext-profile="${id}"]`)});
+  $$('[data-save-settings]').forEach(btn=>btn.addEventListener('click',()=>{data.business.name=$("#settingBusiness").value.trim()||"KAS RC Arena";data.settings.ownerPin=$("#settingPin").value.trim()||"1234";data.settings.warningSeconds=Math.min(300,Math.max(10,Number($("#settingWarning")?.value||60)));data.settings.alarmRepeat=Math.min(5,Math.max(1,Number($("#settingRepeat")?.value||2)));save();render();toast("Settings saved locally")}));
   $('[data-owner-sound]')?.addEventListener('click',()=>playRinger());
   $('[data-export]')?.addEventListener('click',exportBackup);$('[data-import]')?.addEventListener('click',()=>$("#importFile").click());
   $('[data-reset]')?.addEventListener('click',async()=>{if(!confirm("Reset all local KAS RC Arena data? This cannot be undone unless you exported a backup."))return;data=structuredClone(DEFAULT);await dbSet(data);memory.ownerUnlocked=false;close("ownerModal",true);logout();render();toast("Local data reset")});
@@ -356,4 +462,4 @@ document.addEventListener("focusin",e=>{if(!e.target.matches("input,textarea"))r
 $("#customerName")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("#customerMobile")?.focus()}});
 $("#customerMobile")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();e.target.blur();setTimeout(()=>$("#packageSection")?.scrollIntoView({block:"start",behavior:"smooth"}),120)}});
 window.addEventListener("popstate",e=>{if(!memory.currentUser)return;applyHistoryState(e.state)});
-(async function start(){await initState();renderLoginChoices();try{const s=JSON.parse(sessionStorage.getItem("kas-session")||"null");if(s?.role==="owner")memory.currentUser={role:"owner",id:"owner",name:"Owner"};if(s?.role==="operator"&&data.staff.some(x=>x.id===s.id&&x.active!==false))memory.currentUser=s}catch{}applyAccessUI();render();historyReady=true;setHistory(memory.currentView||"arena",null,"replace");setInterval(checkTimers,1000);if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("sw.js").catch(()=>{});})();
+(async function start(){await initState();renderLoginChoices();try{const s=JSON.parse(sessionStorage.getItem("kas-session")||"null");if(s?.role==="owner")memory.currentUser={role:"owner",id:"owner",name:"Owner"};if(s?.role==="operator"&&data.staff.some(x=>x.id===s.id&&x.active!==false))memory.currentUser=s}catch{}applyAccessUI();render();updateSyncStatus();historyReady=true;setHistory(memory.currentView||"arena",null,"replace");setInterval(checkTimers,1000);if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("sw.js").catch(()=>{});})();
