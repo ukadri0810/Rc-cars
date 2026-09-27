@@ -1,0 +1,23 @@
+KAS RC Arena - How to Open
+
+IMPORTANT: Do not double-click index.html directly.
+This app uses JavaScript modules and PWA features that browsers block when opened as file://.
+
+EASIEST METHOD ON WINDOWS
+1. Extract the ZIP completely.
+2. Open the extracted kas-rc-arena folder.
+3. Double-click START_KAS_RC_ARENA.bat.
+4. A command window will open and your browser will automatically open:
+   http://localhost:4173
+
+DEFAULT PINS
+Operator: 1111
+Owner:    1234
+
+ALTERNATIVE METHOD
+Open Command Prompt in the project folder and run:
+  npm start
+Then open:
+  http://localhost:4173
+
+Node.js 18+ is required. No npm install is needed.

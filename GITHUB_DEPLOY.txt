@@ -1,0 +1,13 @@
+KAS RC ARENA — GITHUB DEPLOY
+
+1. Create a GitHub repository, for example: kas-rc-arena
+2. Extract this ZIP.
+3. Upload EVERYTHING inside the extracted folder to the ROOT of the repository.
+   index.html must be visible at the top level of the repo.
+4. Commit to the main branch.
+5. GitHub → repository → Settings → Pages.
+6. Under Build and deployment, set Source to: GitHub Actions.
+7. Open the Actions tab and wait for "Deploy KAS RC Arena to GitHub Pages" to finish.
+8. GitHub will provide the live Pages URL.
+
+Do not put all files inside another kas-rc-arena folder inside the repository.

@@ -1,107 +1,66 @@
-# KAS RC Arena
+# KAS RC Arena v1.2 — GitHub Pages Ready
 
-Offline-first Progressive Web App for KAS RC Arena. This build does **not** use Firebase yet. All data is stored on the current device in browser localStorage, with JSON backup/import.
+KAS RC Arena is a mobile-first PWA for managing RC vehicle rentals, live ride timers, pricing, batteries, fleet status, payments, ride history and owner settings.
 
-## Included
+## Current data mode
 
-- Operator PIN login and Owner PIN login
-- Live Arena dashboard
-- Dynamic vehicle types and fleet (cars, boats, excavators, trucks, future RC vehicles)
-- Configurable pricing profiles and packages
-- Configurable extension profiles and extension prices
-- Persistent ride timers based on timestamps
-- Warning state and audible/vibration time-up alert
-- Pause/resume rides
-- Ride completion and ride history
-- Waiting queue
-- Cash / UPI / Other payment recording
-- Battery inventory and battery station
-- Ready / In Use / Charging / Maintenance battery states
-- Battery-to-vehicle assignment and quick battery swap
-- Battery compatibility by vehicle type
-- Battery cycle tracking
-- Owner dashboard with sales and vehicle performance
-- Local backup export/import
-- Installable PWA with service worker/offline shell
-- Responsive phone/tablet/desktop UI
-- Repository-style Store class so Firebase can replace local persistence later without redesigning the UI
-
-## Default demo setup
-
-- 2 RC cars
-- 7 total batteries: 2 installed + 5 spare
-- Standard: 5 min / ₹200
-- Fun Ride: 10 min / ₹350
-- Pro Ride: 15 min / ₹500
-- Extensions: +2 min ₹80, +3 min ₹100, +5 min ₹150
+This build does **not** use Firebase. Operational data is stored on the device/browser. Data on one device will not automatically appear on another device.
 
 ## Default PINs
 
 - Operator: `1111`
 - Owner: `1234`
 
-Change these immediately in **Owner → Business**.
+Change them from Owner settings before live use.
 
+## Deploy to GitHub Pages
 
-## Important: do not double-click index.html
+### Recommended: automatic GitHub Actions deployment
 
-This project uses ES modules and PWA/service-worker features. Modern browsers block parts of these when the page is opened directly with a `file://` URL, which can result in a blank page.
+1. Create a new GitHub repository, for example `kas-rc-arena`.
+2. Upload **all files and folders from this project root** to the repository root. Do not upload an extra outer folder.
+3. Commit and push to the `main` branch.
+4. On GitHub open **Settings → Pages**.
+5. Under **Build and deployment → Source**, choose **GitHub Actions**.
+6. The included workflow at `.github/workflows/deploy-pages.yml` will deploy the site.
+7. Open the URL shown by the workflow or GitHub Pages settings.
 
-On Windows, simply double-click:
+The PWA has been configured to work both on a root domain and on a GitHub Pages project path such as:
 
-```text
-START_KAS_RC_ARENA.bat
-```
+`https://USERNAME.github.io/kas-rc-arena/`
 
-It starts the included local server and opens `http://localhost:4173` automatically.
+## Important
 
-## Run locally
+Do not double-click `index.html` for normal use. JavaScript modules and PWA features require the app to be served over HTTP/HTTPS.
 
-Requires Node.js 18+.
+GitHub Pages will serve it correctly.
+
+## Local testing
+
+If Node.js is installed:
 
 ```bash
 npm start
 ```
 
-Open:
+Then open:
 
-```text
-http://localhost:4173
-```
+`http://localhost:4173`
 
-For testing on a phone connected to the same Wi-Fi, run the project on your computer and open your computer's LAN IP with port 4173. PWA/service-worker behavior is guaranteed on localhost or HTTPS; for production hosting use HTTPS.
+You can also use VS Code Live Server.
 
-## Data storage
+## Main project files
 
-Current build stores operational data in browser `localStorage` under:
+- `index.html` — application shell
+- `styles.css` — responsive UI
+- `js/app.js` — application UI and workflows
+- `js/store.js` — local data/repository layer
+- `js/utils.js` — helpers
+- `manifest.webmanifest` — PWA manifest
+- `sw.js` — offline/service-worker support
+- `assets/` — KAS branding and PWA icons
+- `.github/workflows/deploy-pages.yml` — GitHub Pages deployment
 
-```text
-kas_rc_arena_v1
-```
+## Firebase later
 
-Use **Owner → Backup → Export JSON Backup** regularly until Firebase is connected.
-
-## Firebase migration path
-
-The UI talks through `js/store.js`. In the Firebase version, replace persistence/auth methods in this layer with Firebase Auth + Firestore while preserving the page and workflow code. Recommended future collections:
-
-- users
-- vehicleTypes
-- vehicles
-- pricingProfiles
-- packages
-- extensionProfiles
-- extensions
-- batteryTypes
-- batteries
-- rides
-- payments
-- queue
-- batteryLogs
-- maintenance
-- auditLogs
-- settings
-
-## Important note
-
-This version is designed for one active operating device. Local storage is device-specific and is not suitable for simultaneous multi-device operation. Firebase synchronization should be added before using multiple operator devices at the same time.
+The current build intentionally keeps Firebase out. When Firebase is added, the local repository layer can be replaced/extended with authentication and cloud sync while keeping the core UI workflows.
