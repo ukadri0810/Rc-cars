@@ -286,3 +286,13 @@ The web `firebaseConfig` object is the correct information for a browser Firebas
 8. Add local-data migration.
 9. Add strict Firestore Rules.
 10. Test offline/reconnect and simultaneous-device scenarios before live use.
+
+
+## EOD and expenses when Firebase is connected
+
+Add separate Firestore collections/subcollections for:
+
+- `expenses` — amount, category, paymentMethod, note, date, createdAt, createdBy.
+- `eodClosings` — date, salesTotal, expenseTotal, netTotal, expectedCash, actualCash, note, closedAt, closedBy.
+
+Do not overwrite ride history to make an EOD balance match. Corrections should remain separate records. EOD calculations should be derived from ride/Sumo payments and expense records, while the closing document stores the owner-confirmed snapshot and cash count.

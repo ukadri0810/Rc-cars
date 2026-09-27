@@ -40,6 +40,10 @@ For multi-device production, move from one full-state snapshot to an operation/o
 - `battery.statusChanged`
 - `queue.added`
 - `queue.removed`
+- `expense.created`
+- `expense.deleted`
+- `eod.closed`
+- `eod.updated`
 
 Each outbox record should include `opId`, `deviceId`, `entityId`, `type`, `payload`, `createdAt`, and `syncStatus`. Firebase acknowledges each op idempotently. This prevents duplicate writes when connectivity drops during sync.
 

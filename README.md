@@ -1,4 +1,4 @@
-# KAS RC Arena v3.13 — Simplified Equipment Operations
+# KAS RC Arena v3.15 — EOD & Frictionless Operations
 
 Local-first PWA for KAS RC Arena. Firebase is intentionally not configured yet.
 
@@ -85,3 +85,19 @@ Day-to-day fleet and battery work is now command based instead of configuration 
 - Added an **Auto Assign** button to reset assignments in one tap.
 - The Sumo setup modal is condensed into a 2-column mobile layout with a sticky total/start area to reduce vertical scrolling.
 - Player names remain optional; the system falls back to Player 1, Player 2, etc.
+
+
+## v3.15 — End of Day and crowded-counter optimization
+
+- Added Owner Console **EOD** module with Sales, Expenses, Net and Expected Cash.
+- Daily breakdown includes timed rides, Sumo, Cash, UPI and Other payments.
+- Owner can add expenses in a few taps using large category/payment buttons.
+- Optional cash-count reconciliation and daily closing records are included.
+- Closing is blocked while the selected day still has an active ride or Sumo session.
+- Standard ride flow remembers the last payment method and keeps the first package preselected.
+- The New Ride Start action stays visible on mobile using a sticky footer.
+- Queue start skips the vehicle picker when only one eligible vehicle is free.
+- A ride at 00:00 completes with one tap; early completion still asks for a reason.
+- High-risk transaction actions now include double-tap guards.
+- Five-tab mobile navigation layout was corrected.
+- See `QA_V3_15.md` for the code and interaction checks.

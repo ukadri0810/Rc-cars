@@ -14,3 +14,11 @@ Validation performed:
 - `node --check app.js`
 - `node --check sw.js`
 - manifest JSON parse
+
+
+## v3.15 crowded-counter checks
+- New Ride action footer remains accessible while the form scrolls.
+- Five operational bottom-nav items fit without page-level horizontal scrolling.
+- EOD metrics reflow to two columns on phone widths.
+- Expense modal is layered above Owner Console and can be completed without closing Owner Console.
+- EOD close form becomes one column on narrow screens.

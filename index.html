@@ -39,6 +39,10 @@
     <symbol id="i-sumo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M7 12h3M14 12h3"/><path d="m9 9 3 3-3 3M15 9l-3 3 3 3"/></symbol>
     <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v4a4 4 0 0 1-8 0V4Z"/><path d="M8 6H5v1a4 4 0 0 0 4 4M16 6h3v1a4 4 0 0 1-4 4M12 12v4M9 20h6M10 16h4"/></symbol>
     <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 8 5 12l4 4"/><path d="M5 12h8a6 6 0 0 1 6 6"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M4 7.5h13.5A2.5 2.5 0 0 1 20 10v7a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17V7.5Z"/><path d="M4 8V6.5A2.5 2.5 0 0 1 6.5 4h9"/><path d="M15 12h5v4h-5a2 2 0 0 1 0-4Z"/></symbol>
+    <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3.5h12v17l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5v-17Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M8 3.5v4M16 3.5v4M4 9.5h16"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
   </svg>
 
   <header class="topbar">
@@ -163,8 +167,8 @@
       <div id="packageButtons" class="choice-grid"></div>
       <div class="field-label">Payment</div>
       <div id="paymentButtons" class="segmented"></div>
-      <div class="checkout-total"><span>Total</span><strong id="rideTotal">₹0</strong></div>
-      <button class="primary" id="startRide"><svg><use href="#i-play"/></svg> Start Ride</button>
+      <div class="ride-sticky-footer"><div class="checkout-total"><span>Total</span><strong id="rideTotal">₹0</strong></div>
+      <button class="primary" id="startRide"><svg><use href="#i-play"/></svg> Start Ride</button></div>
     </div>
   </div>
 
@@ -237,11 +241,23 @@
     </div>
   </div>
 
+  <div class="modal hidden" id="expenseModal" role="dialog" aria-modal="true">
+    <div class="modal-card small">
+      <div class="modal-head"><div><div class="eyebrow">OWNER · EXPENSE</div><h2>Add Expense</h2></div><button class="icon-btn" type="button" aria-label="Close expense form" data-close="expenseModal"><svg><use href="#i-close"/></svg></button></div>
+      <div class="expense-date-note" id="expenseDateNote"></div>
+      <label>Amount<input id="expenseAmount" type="number" inputmode="decimal" min="0" step="1" enterkeyhint="done" placeholder="₹ Amount"></label>
+      <div class="field-label">Category</div><div id="expenseCategoryButtons" class="choice-grid two"></div>
+      <div class="field-label">Paid by</div><div id="expensePaymentButtons" class="segmented"></div>
+      <label>Note <span class="optional">Optional</span><input id="expenseNote" maxlength="80" autocomplete="off" placeholder="Short note"></label>
+      <button class="primary" id="saveExpense"><svg><use href="#i-plus"/></svg> Save Expense</button>
+    </div>
+  </div>
+
   <div class="modal hidden" id="ownerModal" role="dialog" aria-modal="true">
     <div class="modal-card owner-card">
       <div class="modal-head owner-head"><div><div class="eyebrow">OWNER CONSOLE</div><h2 id="ownerConsoleTitle">Overview</h2></div><button class="icon-btn" type="button" aria-label="Close Owner Hub" data-close="ownerModal"><svg><use href="#i-close"/></svg></button></div>
       <div class="owner-tabs" id="ownerTabs">
-        <button class="active" data-owner-tab="overview">Overview</button><button data-owner-tab="equipment">Equipment</button><button data-owner-tab="pricing">Pricing</button><button data-owner-tab="activities">Activities</button><button data-owner-tab="staff">Staff & Access</button><button data-owner-tab="settings">Settings</button><button data-owner-tab="backup">Backup</button>
+        <button class="active" data-owner-tab="overview">Overview</button><button data-owner-tab="eod">EOD</button><button data-owner-tab="equipment">Equipment</button><button data-owner-tab="pricing">Pricing</button><button data-owner-tab="activities">Activities</button><button data-owner-tab="staff">Staff & Access</button><button data-owner-tab="settings">Settings</button><button data-owner-tab="backup">Backup</button>
       </div>
       <div id="ownerContent" class="owner-content"></div>
     </div>
