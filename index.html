@@ -65,7 +65,7 @@
       <button data-view="sumo" data-permission="sumo"><svg><use href="#i-sumo"/></svg> Sumo</button>
       <button data-view="queue" data-permission="queue"><svg><use href="#i-queue"/></svg> Queue</button>
       <button data-view="rides" data-permission="rides"><svg><use href="#i-history"/></svg> Rides</button>
-      <button data-view="batteries" data-permission="batteries"><svg><use href="#i-battery"/></svg> Batteries</button>
+      <button data-view="batteries" data-permission="batteries"><svg><use href="#i-battery"/></svg> Equipment</button>
     </nav>
     <section class="summary" id="summaryCards">
       <div><strong id="activeCount">0</strong><span>Active</span></div>
@@ -116,7 +116,11 @@
     </section>
 
     <section class="view" id="view-batteries">
-      <div class="section-head"><div><h2>Battery Station</h2><p>See battery availability and charging status.</p></div></div>
+      <div class="section-head"><div><h2>Equipment</h2><p>The system shows what needs attention. Most actions take one or two taps.</p></div></div>
+      <div id="equipmentAttention" class="equipment-attention"></div>
+      <div class="section-head compact equipment-section-head"><div><h2>Vehicles</h2><p>Battery and maintenance actions from one place.</p></div></div>
+      <div id="equipmentVehicles" class="equipment-vehicle-grid"></div>
+      <div class="section-head compact equipment-section-head"><div><h2>Battery Rack</h2><p>Ready, charging and batteries needing attention.</p></div></div>
       <div id="batterySummary" class="battery-summary"></div>
       <div id="batteryStation" class="battery-grid"></div>
     </section>
@@ -128,7 +132,7 @@
     <button data-view="sumo" data-permission="sumo"><svg><use href="#i-sumo"/></svg><span>Sumo</span></button>
     <button data-view="queue" data-permission="queue"><svg><use href="#i-queue"/></svg><span>Queue</span><b id="queueBadge" class="badge hidden">0</b></button>
     <button data-view="rides" data-permission="rides"><svg><use href="#i-history"/></svg><span>Rides</span></button>
-    <button data-view="batteries" data-permission="batteries"><svg><use href="#i-battery"/></svg><span>Batteries</span></button>
+    <button data-view="batteries" data-permission="batteries"><svg><use href="#i-battery"/></svg><span>Equipment</span></button>
   </nav>
 
 
@@ -235,7 +239,7 @@
     <div class="modal-card owner-card">
       <div class="modal-head owner-head"><div><div class="eyebrow">OWNER CONSOLE</div><h2 id="ownerConsoleTitle">Overview</h2></div><button class="icon-btn" type="button" aria-label="Close Owner Hub" data-close="ownerModal"><svg><use href="#i-close"/></svg></button></div>
       <div class="owner-tabs" id="ownerTabs">
-        <button class="active" data-owner-tab="overview">Overview</button><button data-owner-tab="fleet">Fleet</button><button data-owner-tab="batteries">Batteries</button><button data-owner-tab="pricing">Pricing</button><button data-owner-tab="activities">Activities</button><button data-owner-tab="maintenance">Maintenance</button><button data-owner-tab="staff">Staff & Access</button><button data-owner-tab="settings">Settings</button><button data-owner-tab="backup">Backup</button>
+        <button class="active" data-owner-tab="overview">Overview</button><button data-owner-tab="equipment">Equipment</button><button data-owner-tab="pricing">Pricing</button><button data-owner-tab="activities">Activities</button><button data-owner-tab="staff">Staff & Access</button><button data-owner-tab="settings">Settings</button><button data-owner-tab="backup">Backup</button>
       </div>
       <div id="ownerContent" class="owner-content"></div>
     </div>

@@ -1,4 +1,4 @@
-# KAS RC Arena v3.6 — Local Role & Access Edition
+# KAS RC Arena v3.13 — Simplified Equipment Operations
 
 Local-first PWA for KAS RC Arena. Firebase is intentionally not configured yet.
 
@@ -7,12 +7,12 @@ Local-first PWA for KAS RC Arena. Firebase is intentionally not configured yet.
 - Operator 1 PIN: `1111`
 
 ## Role model
-The Owner always has full access. The Owner can create multiple operator accounts in **Owner Hub → Staff & Access**, assign a separate PIN, disable an account, and choose which modules/actions each operator can use.
+The Owner always has full access. The Owner can create multiple operator accounts in **Owner Console → Staff & Access**, assign a separate PIN, disable an account, and choose which modules/actions each operator can use.
 
-Operator permissions include Queue, Ride History, Battery Station, Battery Controls, Maintenance, and Revenue visibility. Core Arena ride operations remain available after operator login.
+Operator permissions include Queue, Ride History, Equipment, Equipment Controls, Maintenance, Sumo Battle, and Revenue visibility. Core Arena ride operations remain available after operator login.
 
 ## Storage
-Operational data is stored locally in IndexedDB. Use Owner Hub → Backup to export JSON backups regularly until Firebase is connected.
+Operational data is stored locally in IndexedDB. Use Owner Console → Backup to export JSON backups regularly until Firebase is connected.
 
 
 ## QA
@@ -54,4 +54,22 @@ This build adds RC Sumo as a separate activity without changing the existing tim
 - Staff & Access includes a separate Sumo Battle permission
 - Existing timed ride packages remain timer-only
 
-To use Sumo for the first time, open Owner Console > Activities, add at least four Sumo vehicles, then use Owner Console > Fleet > Assign Battery for each vehicle.
+To use Sumo for the first time, open Owner Console > Activities, add at least four Sumo vehicles, then open Owner Console > Equipment. The system recommends compatible ready batteries and you can assign them with one tap.
+
+
+## v3.13 — simplified equipment operations
+
+Day-to-day fleet and battery work is now command based instead of configuration based.
+
+- Operator **Batteries** is renamed **Equipment**.
+- Equipment combines vehicle state, battery assignment, charging and maintenance in one screen.
+- An **Attention** panel tells the user exactly what needs action.
+- A vehicle with no battery gets an automatic recommended compatible battery based on least usage.
+- One tap assigns the recommended battery; changing an installed battery shows the recommended choice first.
+- Old batteries automatically move to **Needs Charge** after a swap.
+- Charging workflow is reduced to **Start Charging → Mark Ready**.
+- Vehicle issue workflow is **Report Issue → Mark Ready**.
+- Owner Console now has one **Equipment** module instead of separate Fleet, Batteries and Maintenance tabs.
+- Detailed vehicle/battery editing still exists but is collapsed under **Inventory & Advanced Setup**.
+- Maintenance history is collapsed under Equipment so it does not clutter daily operations.
+- Physical actions are never falsely inferred: the user confirms/install/charge actions, and the system handles status, assignment, availability and records automatically.
