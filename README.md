@@ -24,3 +24,13 @@ See `QA_REPORT.md` for the v3.6 code-review and operational checks.
 - App-style browser/PWA back navigation: back closes an open modal first or returns Queue/Rides/Batteries to Arena before leaving the app.
 - New Ride no longer auto-opens the keyboard; focused fields scroll into view above the software keyboard.
 - Owner Hub redesigned as Owner Console with a simpler overview of Fleet, Batteries, Pricing, Staff, Maintenance and Settings.
+
+
+## v3.11 battery visibility and timer-only stabilization
+- KAS RC Arena remains **timer-based only**. No lap/race-counting mode has been added.
+- Battery records are normalized on startup/import so older or incomplete local records remain visible.
+- Battery Station now shows Total, Ready, In Use, Charging, Needs Charge and Issue filters.
+- Newly added/saved batteries are highlighted and immediately available in Battery Station.
+- Owner Battery Management shows total inventory and provides a direct **View Battery Station** action.
+- Battery/vehicle assignment links are reconciled safely during startup.
+- Timer packages and extensions are normalized to valid minutes/prices on load.

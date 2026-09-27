@@ -82,3 +82,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 /* v3.10 owner editor reliability UX */
 .owner-autosave-note{display:flex;align-items:center;gap:7px;margin:0 0 10px;padding:9px 11px;border:1px solid #bfe3f2;background:#f1fbff;color:#0f5f96;border-radius:9px;font-size:11px;font-weight:700}.owner-autosave-note svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;flex:none}.just-added{outline:3px solid rgba(99,199,230,.28)!important;border-color:var(--accent)!important;background:#f7fdff!important;transition:outline .25s,border-color .25s,background .25s}.settings-actions{margin-top:12px;justify-content:stretch}.settings-actions>*{flex:1}.compact-primary{width:auto;min-height:38px;padding:9px 12px}
 @media(max-width:520px){.settings-actions{flex-direction:column}.settings-actions>*{width:100%}}
+
+/* v3.11 battery inventory visibility + timer-only stability */
+.battery-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+.battery-summary-card{appearance:none;text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--ink);min-height:58px;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+.battery-summary-card strong{display:block;font-size:18px;line-height:1.05}.battery-summary-card span{display:block;margin-top:4px;font-size:10px;color:var(--muted)}
+.battery-summary-card.active{border-color:var(--blue);background:#eef8fd;box-shadow:0 0 0 2px rgba(22,120,183,.10)}
+.battery-new-highlight{outline:3px solid rgba(34,165,89,.22);box-shadow:0 0 0 5px rgba(34,165,89,.08)!important}
+.battery-owner-summary{display:flex;align-items:center;justify-content:space-between;gap:12px}.battery-owner-summary h3{margin-bottom:3px}.battery-owner-summary .hint{margin:0}.battery-owner-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}.owner-battery-status{white-space:nowrap}
+@media(min-width:520px){.battery-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:850px){.battery-summary{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media(max-width:520px){.battery-owner-summary{align-items:flex-start;flex-direction:column}.battery-owner-summary .secondary{width:100%!important}.battery-owner-row{grid-template-columns:1fr}.owner-battery-status{justify-self:start}}

@@ -58,7 +58,7 @@ const DEFAULT = {
 };
 
 let data = structuredClone(DEFAULT);
-let memory = {selectedVehicle:null, selectedPackage:null, payment:"Cash", selectedRide:null, selectedExtension:null, extensionPayment:"Cash", endReason:"Customer finished", selectedQueue:null, selectedMaintenanceReason:"Vehicle issue", ownerUnlocked:false, ownerTab:"overview", rideRange:"today",loginRole:"operator",selectedOperator:null,currentUser:null,currentView:"arena"};
+let memory = {selectedVehicle:null, selectedPackage:null, payment:"Cash", selectedRide:null, selectedExtension:null, extensionPayment:"Cash", endReason:"Customer finished", selectedQueue:null, selectedMaintenanceReason:"Vehicle issue", ownerUnlocked:false, ownerTab:"overview", rideRange:"today", batteryFilter:"all", highlightBatteryId:null, loginRole:"operator",selectedOperator:null,currentUser:null,currentView:"arena"};
 const PERMISSIONS={
   queue:{label:"Queue",desc:"View, add, start and remove waiting customers"},
   rides:{label:"Ride History",desc:"View and search ride transactions"},
@@ -95,6 +95,49 @@ function mergeDefaults(x){
   if(!merged.staff.length) merged.staff=structuredClone(DEFAULT.staff);
   return merged;
 }
+function normalizeOperationalState(state){
+  const validBatteryStatuses=new Set(["ready","installed","in_use","charging","needs_charge","maintenance"]);
+  const typeIds=new Set((state.batteryTypes||[]).map(t=>t.id));
+  const vehicleIds=new Set((state.vehicles||[]).map(v=>v.id));
+  const batteryIds=new Set((state.batteries||[]).map(b=>b.id));
+  const fallbackType=state.batteryTypes?.[0]?.id||null;
+
+  // Normalize every battery so older/corrupt local records can never disappear from Battery Station.
+  (state.batteries||[]).forEach((b,i)=>{
+    if(!b.id)b.id=uid("bat");
+    if(!b.code)b.code=`B${String(i+1).padStart(2,"0")}`;
+    b.code=String(b.code).trim().toUpperCase();
+    if(!typeIds.has(b.typeId))b.typeId=fallbackType;
+    if(!validBatteryStatuses.has(b.status))b.status="ready";
+    if(b.assignedVehicleId&&!vehicleIds.has(b.assignedVehicleId))b.assignedVehicleId=null;
+    b.cycles=Math.max(0,Number(b.cycles)||0);
+    b.totalRuntimeMin=Math.max(0,Number(b.totalRuntimeMin)||0);
+    b.notes=String(b.notes||"");
+  });
+
+  // Reconcile vehicle <-> battery links. Vehicle assignment is authoritative for installed batteries.
+  (state.vehicles||[]).forEach(v=>{
+    if(v.currentBatteryId&&!batteryIds.has(v.currentBatteryId))v.currentBatteryId=null;
+    const b=(state.batteries||[]).find(x=>x.id===v.currentBatteryId);
+    if(b){
+      b.assignedVehicleId=v.id;
+      const r=(state.rides||[]).find(x=>x.vehicleId===v.id&&!x.endedAt);
+      b.status=r?"in_use":"installed";
+    }
+  });
+  // Any battery claiming an assignment that the vehicle no longer references is returned to ready.
+  (state.batteries||[]).forEach(b=>{
+    if(!b.assignedVehicleId)return;
+    const v=(state.vehicles||[]).find(x=>x.id===b.assignedVehicleId);
+    if(!v||v.currentBatteryId!==b.id){b.assignedVehicleId=null;if(["installed","in_use"].includes(b.status))b.status="ready"}
+  });
+
+  // Keep timer-only package data valid and visible to the ride flow.
+  (state.packages||[]).forEach(p=>{p.minutes=Math.max(1,Number(p.minutes)||1);p.price=Math.max(0,Number(p.price)||0);if(p.active===undefined)p.active=true});
+  (state.extensions||[]).forEach(e=>{e.minutes=Math.max(1,Number(e.minutes)||1);e.price=Math.max(0,Number(e.price)||0);if(e.active===undefined)e.active=true});
+  return state;
+}
+
 function migrateLegacy(old){
   if(!old?.cars) return null;
   const n=structuredClone(DEFAULT); n.rides=[]; n.vehicles=[]; n.batteries=[];const carIdMap={};
@@ -105,10 +148,10 @@ function migrateLegacy(old){
   n.settings.alarmRepeat=old.settings?.alarmRepeat||2;n.settings.nextRideNumber=n.rides.length+1;return n;
 }
 async function initState(){
-  const stored=await dbGet(); if(stored){data=mergeDefaults(stored);return}
-  try{const fallback=JSON.parse(localStorage.getItem("kas-rc-fallback")||"null");if(fallback){data=mergeDefaults(fallback);await dbSet(data);return}}catch{}
-  try{const old=JSON.parse(localStorage.getItem(LEGACY_KEY)||"null");const migrated=migrateLegacy(old);if(migrated){data=migrated;await dbSet(data);return}}catch{}
-  data=structuredClone(DEFAULT);await dbSet(data);
+  const stored=await dbGet(); if(stored){data=normalizeOperationalState(mergeDefaults(stored));await dbSet(data);return}
+  try{const fallback=JSON.parse(localStorage.getItem("kas-rc-fallback")||"null");if(fallback){data=normalizeOperationalState(mergeDefaults(fallback));await dbSet(data);return}}catch{}
+  try{const old=JSON.parse(localStorage.getItem(LEGACY_KEY)||"null");const migrated=migrateLegacy(old);if(migrated){data=normalizeOperationalState(migrated);await dbSet(data);return}}catch{}
+  data=normalizeOperationalState(structuredClone(DEFAULT));await dbSet(data);
 }
 const SYNC_DIRTY_KEY="kas-sync-dirty";
 let pendingRemoteState=null;
@@ -159,7 +202,7 @@ async function backgroundSync(){
 function applyRemoteState(remote){
   if(!remote||typeof remote!=="object")return;
   // Never replace live form DOM while a user is typing. This function is only called at a safe checkpoint.
-  data=mergeDefaults(remote);dbSet(data);pendingRemoteState=null;render();
+  data=normalizeOperationalState(mergeDefaults(remote));dbSet(data);pendingRemoteState=null;render();
 }
 function applyPendingRemoteWhenSafe(){if(pendingRemoteState&&!isUserInteracting())applyRemoteState(pendingRemoteState)}
 window.addEventListener("online",()=>{updateSyncStatus();scheduleBackgroundSync(300)});
@@ -249,10 +292,36 @@ function renderRideHistory(){
 }
 function renderBatteries(){
   if(!$("#batterySummary")||!$("#batteryStation")) return;
-  const counts={ready:0,installed:0,in_use:0,charging:0,needs_charge:0,maintenance:0};data.batteries.forEach(b=>counts[b.status]=(counts[b.status]||0)+1);
-  $("#batterySummary").innerHTML=[['ready','Ready'],['in_use','In Use'],['charging','Charging'],['needs_charge','Needs Charge']].map(([k,l])=>`<div><strong>${counts[k]||0}</strong><span>${l}</span></div>`).join("");
-  $("#batteryStation").innerHTML=(!can("batteryActions")?`<div class="notice read-only-banner">Battery controls are read-only for this operator.</div>`:"")+data.batteries.map(b=>{const t=batteryType(b.typeId),v=vehicle(b.assignedVehicleId);const actions=!can("batteryActions")?"":b.status==="needs_charge"?`<button class="primary-mini" data-batt-action="charge" data-batt="${b.id}">Start Charging</button>`:b.status==="charging"?`<button class="primary-mini" data-batt-action="ready" data-batt="${b.id}">Mark Ready</button>`:b.status==="maintenance"?`<button class="primary-mini" data-batt-action="ready" data-batt="${b.id}">Return to Ready</button>`:b.status==="ready"?`<button data-batt-action="issue" data-batt="${b.id}">Report Issue</button>`:"";return `<article class="battery-card battery-${esc(b.status)}"><div class="battery-card-top"><div><h3>${esc(b.code)}</h3><p>${esc(t?.name||"Battery")} · ${esc(t?.voltage||"")} ${esc(t?.capacity||"")}</p></div><span class="battery-status">${esc(b.status.replaceAll("_"," "))}</span></div><p>${v?`Assigned: ${esc(v.name)}`:`Cycles: ${b.cycles||0} · Runtime: ${b.totalRuntimeMin||0} min`}</p><div class="actions">${actions}</div></article>`}).join("");
+  const counts={ready:0,installed:0,in_use:0,charging:0,needs_charge:0,maintenance:0};
+  data.batteries.forEach(b=>counts[b.status]=(counts[b.status]||0)+1);
+  const total=data.batteries.length;
+  $("#batterySummary").innerHTML=[
+    ["all","Total",total],
+    ["ready","Ready",counts.ready||0],
+    ["in_use","In Use",(counts.in_use||0)+(counts.installed||0)],
+    ["charging","Charging",counts.charging||0],
+    ["needs_charge","Needs Charge",counts.needs_charge||0],
+    ["maintenance","Issue",counts.maintenance||0]
+  ].map(([k,l,n])=>`<button class="battery-summary-card ${memory.batteryFilter===k?"active":""}" data-battery-filter="${k}"><strong>${n}</strong><span>${l}</span></button>`).join("");
+
+  const list=data.batteries
+    .filter(b=>memory.batteryFilter==="all" || (memory.batteryFilter==="in_use"?["in_use","installed"].includes(b.status):b.status===memory.batteryFilter))
+    .slice()
+    .sort((a,b)=>String(a.code).localeCompare(String(b.code),undefined,{numeric:true,sensitivity:"base"}));
+
+  $("#batteryStation").innerHTML=(!can("batteryActions")?`<div class="notice read-only-banner">Battery controls are read-only for this operator.</div>`:"")+
+    (list.length?list.map(b=>{
+      const t=batteryType(b.typeId),v=vehicle(b.assignedVehicleId);
+      const actions=!can("batteryActions")?"":b.status==="needs_charge"?`<button class="primary-mini" data-batt-action="charge" data-batt="${b.id}">Start Charging</button>`:b.status==="charging"?`<button class="primary-mini" data-batt-action="ready" data-batt="${b.id}">Mark Ready</button>`:b.status==="maintenance"?`<button class="primary-mini" data-batt-action="ready" data-batt="${b.id}">Return to Ready</button>`:b.status==="ready"?`<button data-batt-action="issue" data-batt="${b.id}">Report Issue</button>`:"";
+      return `<article id="battery-card-${esc(b.id)}" class="battery-card battery-${esc(b.status)} ${memory.highlightBatteryId===b.id?"battery-new-highlight":""}"><div class="battery-card-top"><div><h3>${esc(b.code)}</h3><p>${esc(t?.name||"Battery")} · ${esc(t?.voltage||"")} ${esc(t?.capacity||"")}</p></div><span class="battery-status">${esc(b.status.replaceAll("_"," "))}</span></div><p>${v?`Assigned: ${esc(v.name)}`:`Cycles: ${b.cycles||0} · Runtime: ${b.totalRuntimeMin||0} min`}</p><div class="actions">${actions}</div></article>`;
+    }).join(""):`<div class="notice">No batteries match this filter.</div>`);
+  $$('[data-battery-filter]').forEach(b=>b.onclick=()=>{memory.batteryFilter=b.dataset.batteryFilter;renderBatteries()});
   $$('[data-batt-action]').forEach(b=>b.onclick=()=>batteryAction(b.dataset.batt,b.dataset.battAction));
+  if(memory.highlightBatteryId){
+    const id=memory.highlightBatteryId;
+    requestAnimationFrame(()=>document.getElementById("battery-card-"+id)?.scrollIntoView({block:"center",behavior:"smooth"}));
+    setTimeout(()=>{if(memory.highlightBatteryId===id){memory.highlightBatteryId=null;renderBatteries()}},1800);
+  }
 }
 function updateQueueBadge(){const n=data.queue.length,e=$("#queueBadge");if(!e)return;e.textContent=n;e.classList.toggle("hidden",!n)}
 
@@ -318,7 +387,7 @@ function renderOwner(){
 }
 function ownerOverview(){const rides=todayRides(),cash=rides.reduce((a,r)=>a+paymentsTotal(r,"Cash"),0),upi=rides.reduce((a,r)=>a+paymentsTotal(r,"UPI"),0),runtime=rides.reduce((a,r)=>a+Math.max(0,minutesBetween(r.startedAt,r.endedAt||Date.now())-Math.round((r.totalPausedMs||0)/60000)),0);const byVehicle=data.vehicles.map(v=>{const vr=rides.filter(r=>r.vehicleId===v.id);return {v,count:vr.length,rev:totalRevenue(vr)}}).sort((a,b)=>b.rev-a.rev);return `<div class="owner-home-grid"><button class="owner-module" data-owner-goto="fleet">${svg("i-car")}<strong>Fleet & Vehicles</strong><span>Add vehicles, vehicle types and assign pricing profiles.</span></button><button class="owner-module" data-owner-goto="batteries">${svg("i-battery")}<strong>Batteries</strong><span>Manage battery inventory and battery types.</span></button><button class="owner-module" data-owner-goto="pricing">${svg("i-history")}<strong>Pricing</strong><span>Ride packages, extension prices and profiles.</span></button><button class="owner-module" data-owner-goto="staff">${svg("i-users")}<strong>Staff & Access</strong><span>Operator accounts, PINs and permissions.</span></button><button class="owner-module" data-owner-goto="maintenance">${svg("i-wrench")}<strong>Maintenance</strong><span>Review vehicle issues and maintenance records.</span></button><button class="owner-module" data-owner-goto="settings">${svg("i-settings")}<strong>Settings</strong><span>Business name, timer warning and ringer settings.</span></button></div><div class="owner-metrics"><div class="metric"><strong>${money(totalRevenue(rides))}</strong><span>Today's Revenue</span></div><div class="metric"><strong>${rides.length}</strong><span>Rides</span></div><div class="metric"><strong>${money(rides.length?Math.round(totalRevenue(rides)/rides.length):0)}</strong><span>Avg Ticket</span></div><div class="metric"><strong>${runtime} min</strong><span>Runtime</span></div></div><div class="owner-grid two" style="margin-top:10px"><div class="panel"><h3>Payments</h3><div class="simple-table"><table class="simple-table"><tr><td>Cash</td><td>${money(cash)}</td></tr><tr><td>UPI</td><td>${money(upi)}</td></tr><tr><td>Other</td><td>${money(Math.max(0,totalRevenue(rides)-cash-upi))}</td></tr></table></div></div><div class="panel"><h3>Fleet Performance</h3><table class="simple-table"><thead><tr><th>Vehicle</th><th>Rides</th><th>Revenue</th></tr></thead><tbody>${byVehicle.map(x=>`<tr><td>${esc(x.v.name)}</td><td>${x.count}</td><td>${money(x.rev)}</td></tr>`).join("")}</tbody></table></div></div>`}
 function ownerFleet(){return `<div class="panel"><h3>Fleet</h3>${data.vehicles.map(v=>`<div class="editor-row"><div class="editor-grid"><input data-v-name="${v.id}" value="${esc(v.name)}" placeholder="Vehicle name"><input data-v-code="${v.id}" value="${esc(v.code)}" placeholder="Code"><select data-v-type="${v.id}">${data.vehicleTypes.map(t=>`<option value="${t.id}" ${t.id===v.typeId?"selected":""}>${esc(t.name)}</option>`).join("")}</select><select data-v-price="${v.id}">${data.pricingProfiles.map(p=>`<option value="${p.id}" ${p.id===v.pricingProfileId?"selected":""}>${esc(p.name)}</option>`).join("")}</select><select data-v-ext="${v.id}">${data.extensionProfiles.map(p=>`<option value="${p.id}" ${p.id===v.extensionProfileId?"selected":""}>${esc(p.name)}</option>`).join("")}</select><select data-v-btype="${v.id}">${data.batteryTypes.map(t=>`<option value="${t.id}" ${t.id===v.batteryTypeId?"selected":""}>${esc(t.name)}</option>`).join("")}</select></div><div class="editor-actions"><button class="mini-btn" data-save-vehicle="${v.id}">Save</button><button class="mini-btn ${v.active===false?"":"danger"}" data-toggle-vehicle="${v.id}" ${activeRide(v.id)?"disabled":""}>${v.active===false?"Restore":"Archive"}</button></div></div>`).join("")}<button class="secondary" data-add-vehicle>${svg("i-plus")} Add Vehicle</button></div><div class="panel" style="margin-top:10px"><h3>Vehicle Types</h3>${data.vehicleTypes.map(t=>`<div class="editor-row"><div class="add-row"><input data-type-name="${t.id}" value="${esc(t.name)}"><button class="mini-btn" data-save-type="${t.id}">Save</button></div></div>`).join("")}<button class="secondary" data-add-type>${svg("i-plus")} Add Type</button></div>`}
-function ownerBatteries(){return `<div class="owner-grid two"><div class="panel"><h3>Battery Inventory</h3>${data.batteries.map(b=>`<div class="editor-row"><div class="editor-grid"><input data-b-code="${b.id}" value="${esc(b.code)}" placeholder="Code"><select data-b-type="${b.id}">${data.batteryTypes.map(t=>`<option value="${t.id}" ${t.id===b.typeId?"selected":""}>${esc(t.name)}</option>`).join("")}</select></div><div class="editor-actions"><button class="mini-btn" data-save-battery="${b.id}">Save</button><button class="mini-btn danger" data-delete-battery="${b.id}" ${b.assignedVehicleId?"disabled":""}>Delete</button></div></div>`).join("")}<button class="secondary" data-add-battery>${svg("i-plus")} Add Battery</button></div><div class="panel"><h3>Battery Types</h3>${data.batteryTypes.map(t=>`<div class="editor-row"><div class="editor-grid"><input data-bt-name="${t.id}" value="${esc(t.name)}" placeholder="Type name"><input data-bt-volt="${t.id}" value="${esc(t.voltage||"")}" placeholder="Voltage"><input data-bt-cap="${t.id}" value="${esc(t.capacity||"")}" placeholder="Capacity"><input data-bt-conn="${t.id}" value="${esc(t.connector||"")}" placeholder="Connector"></div><div class="editor-actions"><button class="mini-btn" data-save-btype="${t.id}">Save</button></div></div>`).join("")}<button class="secondary" data-add-btype>${svg("i-plus")} Add Battery Type</button></div></div>`}
+function ownerBatteries(){return `<div class="panel battery-owner-summary"><div><h3>Battery Inventory</h3><p class="hint">${data.batteries.length} batteries saved in local inventory. New batteries default to Ready and appear immediately in Battery Station.</p></div><button class="secondary compact-btn" data-open-battery-station>${svg("i-battery")} View Battery Station</button></div><div class="owner-grid two" style="margin-top:10px"><div class="panel"><h3>Inventory</h3>${data.batteries.map(b=>`<div class="editor-row"><div class="battery-owner-row"><div class="editor-grid"><input data-b-code="${b.id}" value="${esc(b.code)}" placeholder="Code"><select data-b-type="${b.id}">${data.batteryTypes.map(t=>`<option value="${t.id}" ${t.id===b.typeId?"selected":""}>${esc(t.name)}</option>`).join("")}</select></div><span class="battery-status owner-battery-status">${esc((b.status||"ready").replaceAll("_"," "))}</span></div><div class="editor-actions"><button class="mini-btn" data-save-battery="${b.id}">Save</button><button class="mini-btn danger" data-delete-battery="${b.id}" ${b.assignedVehicleId?"disabled":""}>Delete</button></div></div>`).join("")}<button class="secondary" data-add-battery>${svg("i-plus")} Add Battery</button></div><div class="panel"><h3>Battery Types</h3>${data.batteryTypes.map(t=>`<div class="editor-row"><div class="editor-grid"><input data-bt-name="${t.id}" value="${esc(t.name)}" placeholder="Type name"><input data-bt-volt="${t.id}" value="${esc(t.voltage||"")}" placeholder="Voltage"><input data-bt-cap="${t.id}" value="${esc(t.capacity||"")}" placeholder="Capacity"><input data-bt-conn="${t.id}" value="${esc(t.connector||"")}" placeholder="Connector"></div><div class="editor-actions"><button class="mini-btn" data-save-btype="${t.id}">Save</button></div></div>`).join("")}<button class="secondary" data-add-btype>${svg("i-plus")} Add Battery Type</button></div></div>`}
 function ownerPricing(){return `<div class="owner-grid two"><div class="panel"><h3>Ride Packages</h3>${data.packages.map(p=>`<div class="editor-row"><div class="editor-grid"><input data-p-name="${p.id}" value="${esc(p.name)}"><select data-p-prof="${p.id}">${data.pricingProfiles.map(x=>`<option value="${x.id}" ${x.id===p.profileId?"selected":""}>${esc(x.name)}</option>`).join("")}</select><input data-p-min="${p.id}" type="number" min="1" value="${p.minutes}"><input data-p-price="${p.id}" type="number" min="0" value="${p.price}"></div><div class="editor-actions"><button class="mini-btn" data-save-package="${p.id}">Save</button><button class="mini-btn danger" data-delete-package="${p.id}" ${data.packages.length<=1?"disabled":""}>Delete</button></div></div>`).join("")}<button class="secondary" data-add-package>${svg("i-plus")} Add Package</button><hr class="sep"><h3>Pricing Profiles</h3>${data.pricingProfiles.map(p=>`<div class="add-row"><input data-price-profile="${p.id}" value="${esc(p.name)}"><button class="mini-btn" data-save-price-profile="${p.id}">Save</button></div>`).join("")}<button class="secondary" style="margin-top:8px" data-add-price-profile>${svg("i-plus")} Add Profile</button></div><div class="panel"><h3>Extension Options</h3>${data.extensions.map(e=>`<div class="editor-row"><div class="editor-grid"><input data-e-name="${e.id}" value="${esc(e.name)}"><select data-e-prof="${e.id}">${data.extensionProfiles.map(x=>`<option value="${x.id}" ${x.id===e.profileId?"selected":""}>${esc(x.name)}</option>`).join("")}</select><input data-e-min="${e.id}" type="number" min="1" value="${e.minutes}"><input data-e-price="${e.id}" type="number" min="0" value="${e.price}"></div><div class="editor-actions"><button class="mini-btn" data-save-extension="${e.id}">Save</button><button class="mini-btn danger" data-delete-extension="${e.id}" ${data.extensions.length<=1?"disabled":""}>Delete</button></div></div>`).join("")}<button class="secondary" data-add-extension>${svg("i-plus")} Add Extension</button><hr class="sep"><h3>Extension Profiles</h3>${data.extensionProfiles.map(p=>`<div class="add-row"><input data-ext-profile="${p.id}" value="${esc(p.name)}"><button class="mini-btn" data-save-ext-profile="${p.id}">Save</button></div>`).join("")}<button class="secondary" style="margin-top:8px" data-add-ext-profile>${svg("i-plus")} Add Profile</button></div></div>`}
 function ownerMaintenance(){const list=data.maintenance.slice().reverse();return `<div class="panel"><h3>Maintenance Log</h3><div class="table-scroll"><table class="simple-table"><thead><tr><th>Vehicle</th><th>Issue</th><th>Reported</th><th>Status</th></tr></thead><tbody>${list.map(m=>`<tr><td>${esc(m.vehicleName)}</td><td>${esc(m.reason)}${m.note?` · ${esc(m.note)}`:""}</td><td>${new Date(m.reportedAt).toLocaleString()}</td><td>${m.resolvedAt?"Resolved":"Open"}</td></tr>`).join("")||`<tr><td colspan="4">No maintenance records yet.</td></tr>`}</tbody></table></div></div>`}
 function ownerStaff(){return `<div class="panel"><div class="section-head compact"><div><h3>Operators & Access</h3><p>Each operator signs in separately. Enable only the features they need.</p></div><button class="secondary compact-btn" data-add-staff>${svg("i-plus")} Add Operator</button></div>${data.staff.map(s=>`<div class="staff-card"><div class="staff-head"><div><strong>${esc(s.name)}</strong><span>${s.active!==false?"Active":"Disabled"}</span></div><div class="editor-actions"><button class="mini-btn" data-save-staff="${s.id}">Save</button><button class="mini-btn danger" data-delete-staff="${s.id}" ${data.staff.length<=1?"disabled":""}>Delete</button></div></div><div class="editor-grid" style="margin-top:9px"><input data-staff-name="${s.id}" value="${esc(s.name)}" placeholder="Operator name"><input data-staff-pin="${s.id}" value="${esc(s.pin)}" inputmode="numeric" maxlength="8" placeholder="PIN"></div><label class="permission-item" style="margin-top:8px"><input type="checkbox" data-staff-active="${s.id}" ${s.active!==false?"checked":""}><div><strong>Account active</strong><span>Allow this operator to sign in</span></div></label><div class="permission-grid">${Object.entries(PERMISSIONS).map(([key,m])=>`<label class="permission-item"><input type="checkbox" data-staff-perm="${s.id}" data-perm-key="${key}" ${s.permissions?.[key]?"checked":""}><div><strong>${esc(m.label)}</strong><span>${esc(m.desc)}</span></div></label>`).join("")}</div></div>`).join("")}</div>`}
@@ -371,6 +440,7 @@ function bindOwnerAutosave(){
 }
 function bindOwnerActions(){
   bindOwnerAutosave();
+  $('[data-open-battery-station]')?.addEventListener('click',()=>{memory.batteryFilter="all";close("ownerModal",true);switchView("batteries",false);if(historyReady)setHistory("batteries",null,"replace")});
   $('[data-add-staff]')?.addEventListener('click',()=>{const i=data.staff.length+1;data.staff.push({id:uid("op"),name:`Operator ${i}`,pin:"1111",active:true,permissions:{arena:true,queue:true,rides:true,batteries:true,batteryActions:false,maintenance:false,viewRevenue:false}});save();renderOwner()});
   $$('[data-save-staff]').forEach(b=>b.onclick=()=>{const s=data.staff.find(x=>x.id===b.dataset.saveStaff);if(!s)return;s.name=$(`[data-staff-name="${s.id}"]`).value.trim()||s.name;s.pin=$(`[data-staff-pin="${s.id}"]`).value.trim()||"1111";s.active=$(`[data-staff-active="${s.id}"]`).checked;Object.keys(PERMISSIONS).forEach(k=>{const el=$(`[data-staff-perm="${s.id}"][data-perm-key="${k}"]`);s.permissions[k]=!!el?.checked});save();renderLoginChoices();renderOwner();toast("Operator access updated")});
   $$('[data-delete-staff]').forEach(b=>b.onclick=()=>{if(data.staff.length<=1)return;const st=data.staff.find(x=>x.id===b.dataset.deleteStaff);if(!confirm(`Delete ${st?.name||"this operator"}?`))return;data.staff=data.staff.filter(x=>x.id!==b.dataset.deleteStaff);save();renderLoginChoices();renderOwner();toast("Operator deleted")});
@@ -379,9 +449,9 @@ function bindOwnerActions(){
   $('[data-add-vehicle]')?.addEventListener('click',()=>{const id=uid("veh"),i=data.vehicles.length+1;data.vehicles.push({id,code:nextVehicleCode(),name:`Vehicle ${i}`,typeId:data.vehicleTypes[0]?.id,pricingProfileId:data.pricingProfiles[0]?.id,extensionProfileId:data.extensionProfiles[0]?.id,batteryTypeId:data.batteryTypes[0]?.id,currentBatteryId:null,manualStatus:"available",active:true});save();renderOwner();render();toast("Vehicle added — edit details and they will auto-save");focusOwnerField(`[data-v-name="${id}"]`)});
   $$('[data-save-type]').forEach(b=>b.onclick=()=>{const t=data.vehicleTypes.find(x=>x.id===b.dataset.saveType);if(!t)return;t.name=$(`[data-type-name="${t.id}"]`).value.trim()||t.name;save();renderOwner();render();toast("Vehicle type saved")});
   $('[data-add-type]')?.addEventListener('click',()=>{const id=uid("type");data.vehicleTypes.push({id,name:"New Vehicle Type",active:true});save();renderOwner();toast("Vehicle type added");focusOwnerField(`[data-type-name="${id}"]`)});
-  $$('[data-save-battery]').forEach(b=>b.onclick=()=>{const x=battery(b.dataset.saveBattery);if(!x)return;const code=$(`[data-b-code="${x.id}"]`).value.trim().toUpperCase()||x.code;if(data.batteries.some(y=>y.id!==x.id&&String(y.code).toUpperCase()===code))return toast("Battery code already exists");x.code=code;x.typeId=$(`[data-b-type="${x.id}"]`).value;save();renderOwner();render();toast("Battery saved")});
+  $$('[data-save-battery]').forEach(b=>b.onclick=()=>{const x=battery(b.dataset.saveBattery);if(!x)return;const code=$(`[data-b-code="${x.id}"]`).value.trim().toUpperCase()||x.code;if(data.batteries.some(y=>y.id!==x.id&&String(y.code).toUpperCase()===code))return toast("Battery code already exists");x.code=code;x.typeId=$(`[data-b-type="${x.id}"]`).value;normalizeOperationalState(data);memory.highlightBatteryId=x.id;memory.batteryFilter="all";save();renderOwner();render();toast(`${x.code} saved`)});
   $$('[data-delete-battery]').forEach(b=>b.onclick=()=>{const x=battery(b.dataset.deleteBattery);if(!x||x.assignedVehicleId)return;if(!confirm(`Delete battery ${x.code}?`))return;data.batteries=data.batteries.filter(v=>v.id!==x.id);save();renderOwner();render();toast("Battery deleted")});
-  $('[data-add-battery]')?.addEventListener('click',()=>{if(!data.batteryTypes.length)return toast("Add a battery type first");const id=uid("bat");data.batteries.push({id,code:nextBatteryCode(),typeId:data.batteryTypes[0]?.id,status:"ready",assignedVehicleId:null,cycles:0,totalRuntimeMin:0,notes:""});save();renderOwner();render();toast("Battery added — ready for use");focusOwnerField(`[data-b-code="${id}"]`)});
+  $('[data-add-battery]')?.addEventListener('click',()=>{if(!data.batteryTypes.length)return toast("Add a battery type first");const id=uid("bat");const item={id,code:nextBatteryCode(),typeId:data.batteryTypes[0]?.id,status:"ready",assignedVehicleId:null,cycles:0,totalRuntimeMin:0,notes:""};data.batteries.push(item);memory.highlightBatteryId=id;memory.batteryFilter="all";normalizeOperationalState(data);save();renderOwner();render();toast(`${item.code} added and visible in Battery Station`);focusOwnerField(`[data-b-code="${id}"]`)});
   $$('[data-save-btype]').forEach(b=>b.onclick=()=>{const t=batteryType(b.dataset.saveBtype);if(!t)return;t.name=$(`[data-bt-name="${t.id}"]`).value.trim()||t.name;t.voltage=$(`[data-bt-volt="${t.id}"]`).value.trim();t.capacity=$(`[data-bt-cap="${t.id}"]`).value.trim();t.connector=$(`[data-bt-conn="${t.id}"]`).value.trim();save();renderOwner();render();toast("Battery type saved")});
   $('[data-add-btype]')?.addEventListener('click',()=>{const id=uid("bt");data.batteryTypes.push({id,name:"New Battery Type",voltage:"",capacity:"",connector:"",compatibleTypeIds:[]});save();renderOwner();toast("Battery type added");focusOwnerField(`[data-bt-name="${id}"]`)});
   $$('[data-save-package]').forEach(b=>b.onclick=()=>{const id=b.dataset.savePackage,p=packageBy(id);if(!p)return;p.name=$(`[data-p-name="${id}"]`).value.trim()||p.name;p.profileId=$(`[data-p-prof="${id}"]`).value;p.minutes=Math.max(1,Number($(`[data-p-min="${id}"]`).value)||1);p.price=Math.max(0,Number($(`[data-p-price="${id}"]`).value)||0);save();renderOwner();render();toast("Package saved")});
@@ -397,10 +467,10 @@ function bindOwnerActions(){
   $$('[data-save-settings]').forEach(btn=>btn.addEventListener('click',()=>{data.business.name=$("#settingBusiness").value.trim()||"KAS RC Arena";data.settings.ownerPin=$("#settingPin").value.trim()||"1234";data.settings.warningSeconds=Math.min(300,Math.max(10,Number($("#settingWarning")?.value||60)));data.settings.alarmRepeat=Math.min(5,Math.max(1,Number($("#settingRepeat")?.value||2)));save();render();toast("Settings saved locally")}));
   $('[data-owner-sound]')?.addEventListener('click',()=>playRinger());
   $('[data-export]')?.addEventListener('click',exportBackup);$('[data-import]')?.addEventListener('click',()=>$("#importFile").click());
-  $('[data-reset]')?.addEventListener('click',async()=>{if(!confirm("Reset all local KAS RC Arena data? This cannot be undone unless you exported a backup."))return;data=structuredClone(DEFAULT);await dbSet(data);memory.ownerUnlocked=false;close("ownerModal",true);logout();render();toast("Local data reset")});
+  $('[data-reset]')?.addEventListener('click',async()=>{if(!confirm("Reset all local KAS RC Arena data? This cannot be undone unless you exported a backup."))return;data=normalizeOperationalState(structuredClone(DEFAULT));await dbSet(data);memory.ownerUnlocked=false;close("ownerModal",true);logout();render();toast("Local data reset")});
 }
 function exportBackup(){const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`KAS-RC-Arena-Backup-${localDateKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast("Backup exported")}
-$("#importFile").onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const parsed=JSON.parse(await f.text());if(!parsed||!Array.isArray(parsed.vehicles)||!Array.isArray(parsed.rides))throw new Error();if(!confirm("Import this backup and replace current local data?"))return;data=mergeDefaults(parsed);await dbSet(data);render();renderOwner();toast("Backup imported")}catch{toast("Invalid backup file")}e.target.value=""};
+$("#importFile").onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const parsed=JSON.parse(await f.text());if(!parsed||!Array.isArray(parsed.vehicles)||!Array.isArray(parsed.rides))throw new Error();if(!confirm("Import this backup and replace current local data?"))return;data=normalizeOperationalState(mergeDefaults(parsed));await dbSet(data);render();renderOwner();toast("Backup imported")}catch{toast("Invalid backup file")}e.target.value=""};
 
 
 function renderLoginChoices(){
