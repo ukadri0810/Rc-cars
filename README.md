@@ -73,3 +73,15 @@ Day-to-day fleet and battery work is now command based instead of configuration 
 - Detailed vehicle/battery editing still exists but is collapsed under **Inventory & Advanced Setup**.
 - Maintenance history is collapsed under Equipment so it does not clutter daily operations.
 - Physical actions are never falsely inferred: the user confirms/install/charge actions, and the system handles status, assignment, availability and records automatically.
+
+
+## v3.14 — faster Sumo setup
+
+- Sumo vehicles are now automatically assigned when a match is opened.
+- Auto-assignment prefers the least-used ready Sumo vehicles to rotate wear.
+- Changing 4/5 player count automatically reassigns vehicles.
+- Player setup no longer shows every vehicle under every player.
+- Each player has one compact assigned-vehicle chip; tap it to cycle to another available vehicle.
+- Added an **Auto Assign** button to reset assignments in one tap.
+- The Sumo setup modal is condensed into a 2-column mobile layout with a sticky total/start area to reduce vertical scrolling.
+- Player names remain optional; the system falls back to Player 1, Player 2, etc.

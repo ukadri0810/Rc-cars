@@ -209,12 +209,14 @@
   <div class="modal hidden" id="sumoModal" role="dialog" aria-modal="true">
     <div class="modal-card sumo-setup-card">
       <div class="modal-head"><div><div class="eyebrow">NEW SUMO MATCH</div><h2>RC Sumo Battle</h2></div><button class="icon-btn" type="button" aria-label="Close Sumo match" data-close="sumoModal"><svg><use href="#i-close"/></svg></button></div>
-      <div class="field-label">Players</div><div id="sumoPlayerCountButtons" class="segmented two"></div>
-      <div class="field-label">Select Sumo package</div><div id="sumoPackageButtons" class="choice-grid"></div>
-      <div class="field-label">Players & vehicles</div><div id="sumoParticipants" class="sumo-participant-setup"></div>
-      <div class="field-label">Payment</div><div id="sumoPaymentButtons" class="segmented"></div>
-      <div class="checkout-total"><span>Total</span><strong id="sumoTotal">₹0</strong></div>
-      <button class="primary" id="startSumoMatch"><svg><use href="#i-play"/></svg> Start Sumo Match</button>
+      <div class="sumo-setup-top">
+        <div class="sumo-setup-block"><div class="field-label">Players</div><div id="sumoPlayerCountButtons" class="segmented two"></div></div>
+        <div class="sumo-setup-block"><div class="field-label">Payment</div><div id="sumoPaymentButtons" class="segmented"></div></div>
+      </div>
+      <div class="sumo-package-section"><div class="field-label">Package</div><div id="sumoPackageButtons" class="choice-grid sumo-package-grid"></div></div>
+      <div class="sumo-participant-head"><div><div class="field-label">Players</div><span>Vehicles are auto-assigned. Tap a vehicle to change it.</span></div><button class="secondary compact-btn" type="button" id="sumoReassign">Auto Assign</button></div>
+      <div id="sumoParticipants" class="sumo-participant-setup compact"></div>
+      <div class="sumo-sticky-footer"><div class="checkout-total"><span>Total</span><strong id="sumoTotal">₹0</strong></div><button class="primary" id="startSumoMatch"><svg><use href="#i-play"/></svg> Start Match</button></div>
     </div>
   </div>
 
