@@ -42,6 +42,19 @@ Offline-first Progressive Web App for KAS RC Arena. This build does **not** use 
 
 Change these immediately in **Owner → Business**.
 
+
+## Important: do not double-click index.html
+
+This project uses ES modules and PWA/service-worker features. Modern browsers block parts of these when the page is opened directly with a `file://` URL, which can result in a blank page.
+
+On Windows, simply double-click:
+
+```text
+START_KAS_RC_ARENA.bat
+```
+
+It starts the included local server and opens `http://localhost:4173` automatically.
+
 ## Run locally
 
 Requires Node.js 18+.
