@@ -34,3 +34,24 @@ See `QA_REPORT.md` for the v3.6 code-review and operational checks.
 - Owner Battery Management shows total inventory and provides a direct **View Battery Station** action.
 - Battery/vehicle assignment links are reconciled safely during startup.
 - Timer packages and extensions are normalized to valid minutes/prices on load.
+
+
+## v3.12 - RC Sumo Battle
+
+This build adds RC Sumo as a separate activity without changing the existing timer-based rental workflow.
+
+- Dedicated Sumo operator tab
+- 4 or 5 player matches
+- Separate Sumo packages with per-player or per-match pricing
+- Optional maximum match timer (0 = no time limit)
+- Assign one RC Sumo vehicle to each player
+- Manual elimination, undo last elimination and winner detection
+- Time-up alarm and acknowledgement
+- End-as-draw option when time expires with multiple players remaining
+- Sumo match history and revenue reporting
+- Sumo groups can be added to the existing queue
+- Owner Console > Activities manages Sumo pricing and quick-add Sumo vehicles
+- Staff & Access includes a separate Sumo Battle permission
+- Existing timed ride packages remain timer-only
+
+To use Sumo for the first time, open Owner Console > Activities, add at least four Sumo vehicles, then use Owner Console > Fleet > Assign Battery for each vehicle.

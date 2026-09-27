@@ -1,7 +1,7 @@
 {
   "name": "KAS RC Arena",
   "short_name": "KAS RC",
-  "description": "Fleet, ride and battery management for Karde Adventure Sports",
+  "description": "Fleet, timed ride, RC Sumo and battery management for Karde Adventure Sports",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
