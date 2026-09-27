@@ -28,6 +28,7 @@
     <symbol id="i-close" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></symbol>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M8 11l4 4 4-4M5 20h14"/></symbol>
     <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20V9M8 13l4-4 4 4M5 4h14"/></symbol>
+    <symbol id="i-install" viewBox="0 0 24 24"><path d="M12 4v10"/><path d="m8 10 4 4 4-4"/><path d="M5 18.5h14"/></symbol>
     <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v5M12 17.5v.01"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
@@ -47,8 +48,9 @@
       </div>
     </div>
     <div class="top-actions">
+      <button class="admin-btn hidden" id="installBtn" type="button" aria-label="Install KAS RC Arena"><svg><use href="#i-install"/></svg><span class="desktop-label">Install</span></button>
       <button class="admin-btn sound-only" id="soundTest" type="button" aria-label="Test ringer"><svg><use href="#i-volume"/></svg><span class="desktop-label">Ringer</span></button>
-      <button class="admin-btn hidden" id="adminBtn" type="button" aria-label="Open Owner Hub"><svg><use href="#i-settings"/></svg><span>Owner Hub</span></button>
+      <button class="admin-btn hidden" id="adminBtn" type="button" aria-label="Open Owner Console"><svg><use href="#i-settings"/></svg><span class="desktop-label">Owner Console</span></button>
       <button class="admin-btn hidden" id="logoutBtn" type="button" aria-label="Logout"><svg><use href="#i-logout"/></svg><span class="desktop-label">Logout</span></button>
     </div>
   </header>
@@ -126,9 +128,9 @@
   <div class="modal hidden" id="rideModal" role="dialog" aria-modal="true">
     <div class="modal-card">
       <div class="modal-head"><div><div class="eyebrow">NEW RIDE</div><h2 id="rideVehicleTitle">Vehicle</h2></div><button class="icon-btn" type="button" aria-label="Close new ride" data-close="rideModal"><svg><use href="#i-close"/></svg></button></div>
-      <label>Customer name<input id="customerName" maxlength="40" placeholder="Walk-in customer"></label>
-      <label>Mobile number <span class="optional">Optional</span><input id="customerMobile" inputmode="tel" maxlength="15" placeholder="Optional"></label>
-      <div class="field-label">Select package</div>
+      <label>Customer name<input id="customerName" maxlength="40" enterkeyhint="next" autocomplete="off" placeholder="Walk-in customer"></label>
+      <label>Mobile number <span class="optional">Optional</span><input id="customerMobile" inputmode="tel" maxlength="15" enterkeyhint="done" autocomplete="off" placeholder="Optional"></label>
+      <div class="field-label" id="packageSection">Select package</div>
       <div id="packageButtons" class="choice-grid"></div>
       <div class="field-label">Payment</div>
       <div id="paymentButtons" class="segmented"></div>
@@ -191,7 +193,7 @@
 
   <div class="modal hidden" id="ownerModal" role="dialog" aria-modal="true">
     <div class="modal-card owner-card">
-      <div class="modal-head owner-head"><div><div class="eyebrow">OWNER HUB</div><h2>Business Control</h2></div><button class="icon-btn" type="button" aria-label="Close Owner Hub" data-close="ownerModal"><svg><use href="#i-close"/></svg></button></div>
+      <div class="modal-head owner-head"><div><div class="eyebrow">OWNER CONSOLE</div><h2 id="ownerConsoleTitle">Overview</h2></div><button class="icon-btn" type="button" aria-label="Close Owner Hub" data-close="ownerModal"><svg><use href="#i-close"/></svg></button></div>
       <div class="owner-tabs" id="ownerTabs">
         <button class="active" data-owner-tab="overview">Overview</button><button data-owner-tab="fleet">Fleet</button><button data-owner-tab="batteries">Batteries</button><button data-owner-tab="pricing">Pricing</button><button data-owner-tab="maintenance">Maintenance</button><button data-owner-tab="staff">Staff & Access</button><button data-owner-tab="settings">Settings</button><button data-owner-tab="backup">Backup</button>
       </div>

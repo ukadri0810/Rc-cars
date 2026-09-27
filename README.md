@@ -17,3 +17,10 @@ Operational data is stored locally in IndexedDB. Use Owner Hub → Backup to exp
 
 ## QA
 See `QA_REPORT.md` for the v3.6 code-review and operational checks.
+
+## v3.7 mobile/PWA improvements
+- Compact mobile header so the KAS brand and controls no longer consume excessive vertical space.
+- Install button for supported Android/desktop browsers; iOS shows Add to Home Screen guidance.
+- App-style browser/PWA back navigation: back closes an open modal first or returns Queue/Rides/Batteries to Arena before leaving the app.
+- New Ride no longer auto-opens the keyboard; focused fields scroll into view above the software keyboard.
+- Owner Hub redesigned as Owner Console with a simpler overview of Fleet, Batteries, Pricing, Staff, Maintenance and Settings.
