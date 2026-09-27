@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="description" content="RC Car Rental Operator App">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <title>RC Car Rental</title>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">OPERATOR</div>
+      <h1>RC Car Rental</h1>
+    </div>
+    <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+  </header>
+
+  <main class="container">
+    <section class="stats">
+      <div class="stat-card">
+        <span>Today's rides</span>
+        <strong id="rideCount">0</strong>
+      </div>
+      <div class="stat-card">
+        <span>Today's revenue</span>
+        <strong id="revenue">₹0</strong>
+      </div>
+    </section>
+
+    <section class="section-head">
+      <div>
+        <div class="eyebrow">LIVE</div>
+        <h2>Cars</h2>
+      </div>
+      <button class="secondary-btn" id="soundTestBtn">Test sound</button>
+    </section>
+
+    <section id="carsGrid" class="cars-grid"></section>
+
+    <section class="quick-panel">
+      <div>
+        <div class="eyebrow">BUSINESS</div>
+        <h2>Today's activity</h2>
+      </div>
+      <div id="activityList" class="activity-list">
+        <div class="empty">No rides yet today.</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Start Ride Modal -->
+  <div class="modal hidden" id="rideModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">NEW RIDE</div>
+          <h2 id="modalCarName">Car 01</h2>
+        </div>
+        <button class="close-btn" data-close="rideModal">×</button>
+      </div>
+
+      <label>Customer name <span class="optional">(optional)</span></label>
+      <input id="customerName" type="text" maxlength="40" placeholder="e.g. Rahul">
+
+      <label>Package</label>
+      <div id="packageOptions" class="package-options"></div>
+
+      <label>Payment</label>
+      <div class="payment-options">
+        <button class="payment-btn active" data-payment="UPI">UPI</button>
+        <button class="payment-btn" data-payment="CASH">Cash</button>
+      </div>
+
+      <button class="primary-btn full" id="startRideBtn">START RIDE</button>
+    </div>
+  </div>
+
+  <!-- Extension Modal -->
+  <div class="modal hidden" id="extendModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">EXTEND RIDE</div>
+          <h2 id="extendCarName">Car 01</h2>
+        </div>
+        <button class="close-btn" data-close="extendModal">×</button>
+      </div>
+      <div id="extensionOptions" class="package-options"></div>
+      <button class="primary-btn full" id="confirmExtendBtn">ADD TIME</button>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal hidden" id="settingsModal">
+    <div class="modal-card wide">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">ADMIN</div>
+          <h2>Business settings</h2>
+        </div>
+        <button class="close-btn" data-close="settingsModal">×</button>
+      </div>
+
+      <div class="settings-block">
+        <h3>Pricing packages</h3>
+        <div id="settingsPackages"></div>
+        <button class="secondary-btn full" id="addPackageBtn">+ Add package</button>
+      </div>
+
+      <div class="settings-block">
+        <h3>Ride alert</h3>
+        <div class="setting-row">
+          <span>Repeat alarm</span>
+          <select id="alarmRepeat">
+            <option value="1">Once</option>
+            <option value="2">2 times</option>
+            <option value="3">3 times</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <span>Alarm length</span>
+          <select id="alarmLength">
+            <option value="3000">3 seconds</option>
+            <option value="5000" selected>5 seconds</option>
+            <option value="8000">8 seconds</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="primary-btn full" id="saveSettingsBtn">SAVE SETTINGS</button>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
