@@ -1,4 +1,4 @@
-# KAS RC Arena v3.15 — EOD & Frictionless Operations
+# KAS RC Arena v3.16 — EOD Custom Range & Frictionless Operations
 
 Local-first PWA for KAS RC Arena. Firebase is intentionally not configured yet.
 
@@ -101,3 +101,12 @@ Day-to-day fleet and battery work is now command based instead of configuration 
 - High-risk transaction actions now include double-tap guards.
 - Five-tab mobile navigation layout was corrected.
 - See `QA_V3_15.md` for the code and interaction checks.
+
+
+## v3.16 EOD custom date range
+- Owner EOD now supports **Single Day** and **Custom Range** views.
+- Custom ranges are inclusive (for example 01-09-2026 through 28-09-2026).
+- Range view aggregates timed rides, Sumo sales, Cash/UPI/Other payments, expenses, net after expenses and cash balance.
+- Includes quick presets for **This Month** and **Last 7 Days**.
+- Includes a daily summary table; tap any date to open its full single-day EOD and closing.
+- Closing and expense entry remain day-specific to avoid accidentally assigning adjustments to the wrong date.

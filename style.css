@@ -142,3 +142,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 
 /* v3.15 five primary operator destinations */
 .bottom-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+
+/* v3.16 EOD custom date range */
+.eod-mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:5px;background:#edf4f8;border:1px solid var(--line);border-radius:11px;padding:4px;margin-bottom:10px}.eod-mode-switch button{border:0;background:transparent;color:var(--muted);border-radius:8px;padding:9px 12px;font-size:11px;font-weight:800}.eod-mode-switch button.active{background:#fff;color:var(--navy);box-shadow:0 2px 8px rgba(15,62,111,.10)}
+.eod-range-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;gap:7px;align-items:end;margin-bottom:8px}.eod-range-toolbar label{margin:0;min-width:0}.eod-range-toolbar label span{display:block;font-size:9px;color:var(--muted);font-weight:800;margin-bottom:4px}.eod-range-toolbar input{margin:0;height:38px;padding:7px 9px;min-width:0}.eod-range-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 1px 10px}.eod-range-title strong{font-size:12px;color:var(--navy)}.eod-range-title span{font-size:9px;color:var(--muted)}
+.eod-daily-panel{margin-top:10px}.eod-daily-table .date-link{border:0;background:transparent;color:var(--blue2);padding:0;font:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px}.eod-day-status{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:800}.eod-day-status.closed{background:#eaf8ef;color:#17653c}.eod-day-status.open{background:#fff4df;color:#8a5b00}.eod-range-note{margin-top:10px}
+@media(max-width:620px){.eod-range-toolbar{grid-template-columns:1fr 1fr}.eod-range-toolbar .secondary{width:100%}.eod-range-title{align-items:flex-start;flex-direction:column;gap:2px}.eod-daily-table{min-width:620px}}
