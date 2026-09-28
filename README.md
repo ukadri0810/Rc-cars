@@ -110,3 +110,12 @@ Day-to-day fleet and battery work is now command based instead of configuration 
 - Includes quick presets for **This Month** and **Last 7 Days**.
 - Includes a daily summary table; tap any date to open its full single-day EOD and closing.
 - Closing and expense entry remain day-specific to avoid accidentally assigning adjustments to the wrong date.
+
+
+## v3.17 battery charge performance
+- Battery Rack uses simple wording: **Used: X min** and **Earned: ₹Y**.
+- Values cover usage since the battery was last charged and marked Ready.
+- Marking a charging battery Ready saves the previous charge to history and resets Used/Earned to zero.
+- Owner can open Battery History for previous charge records and lifetime totals.
+- Timed rides split revenue across batteries by their actual powered time when a battery is swapped.
+- Sumo revenue is divided across participating batteries.
