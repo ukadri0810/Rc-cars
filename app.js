@@ -21,29 +21,19 @@ const minutesBetween = (a,b) => Math.max(0, Math.round((b-a)/60000));
 
 const DEFAULT = {
   version:6,
-  business:{name:"KAS RC Arena"},
+  business:{name:"KAS Activity Operations"},
   vehicleTypes:[
-    {id:"type_car",name:"RC Car",active:true},
+    {id:"type_car",name:"Hyper Car",active:true},
     {id:"type_truck",name:"RC Truck",active:true},
     {id:"type_excavator",name:"RC Excavator",active:true},
     {id:"type_boat",name:"RC Boat",active:true},
-    {id:"type_sumo",name:"RC Sumo",active:true}
+    {id:"type_sumo",name:"Legacy Sumo",active:false}
   ],
   pricingProfiles:[{id:"price_standard",name:"RC Standard"}],
-  packages:[
-    {id:"pkg_5",profileId:"price_standard",name:"Quick Ride",minutes:5,price:200,active:true},
-    {id:"pkg_10",profileId:"price_standard",name:"Standard",minutes:10,price:350,active:true},
-    {id:"pkg_15",profileId:"price_standard",name:"Long Ride",minutes:15,price:500,active:true}
-  ],
+  packages:[{id:"pkg_hyper",profileId:"price_standard",name:"Hyper Car",minutes:3,price:100,active:true}],
   extensionProfiles:[{id:"ext_standard",name:"Standard Extensions"}],
-  extensions:[
-    {id:"ext_2",profileId:"ext_standard",name:"Quick Extend",minutes:2,price:80,active:true},
-    {id:"ext_3",profileId:"ext_standard",name:"Extra Time",minutes:3,price:100,active:true},
-    {id:"ext_5",profileId:"ext_standard",name:"Long Extend",minutes:5,price:150,active:true}
-  ],
-  sumoPackages:[
-    {id:"sumo_standard",name:"Standard Sumo",pricingMode:"per_player",price:150,minPlayers:4,maxPlayers:5,durationMinutes:3,active:true}
-  ],
+  extensions:[{id:"ext_hyper",profileId:"ext_standard",name:"Another Round",minutes:3,price:100,active:true}],
+  sumoPackages:[],
   batteryTypes:[{id:"bt_2s",name:"2S LiPo",voltage:"7.4V",capacity:"5200mAh",connector:"XT60",compatibleTypeIds:["type_car","type_truck","type_excavator","type_sumo"]}],
   batteries:[
     {id:"bat_01",code:"B01",typeId:"bt_2s",status:"installed",assignedVehicleId:"veh_01",cycles:0,totalRuntimeMin:0,totalRuntimeMs:0,chargeCycles:0,currentChargeSessionId:"charge_bat_01_initial",currentChargeRuntimeMs:0,currentChargeRevenue:0,currentChargeStartedAt:null,chargeHistory:[],totalRevenue:0,notes:""},
@@ -55,12 +45,12 @@ const DEFAULT = {
     {id:"bat_07",code:"B07",typeId:"bt_2s",status:"ready",assignedVehicleId:null,cycles:0,totalRuntimeMin:0,totalRuntimeMs:0,chargeCycles:0,currentChargeSessionId:"charge_bat_07_initial",currentChargeRuntimeMs:0,currentChargeRevenue:0,currentChargeStartedAt:null,chargeHistory:[],totalRevenue:0,notes:""}
   ],
   vehicles:[
-    {id:"veh_01",code:"CAR-01",name:"Car 01",typeId:"type_car",pricingProfileId:"price_standard",extensionProfileId:"ext_standard",batteryTypeId:"bt_2s",currentBatteryId:"bat_01",manualStatus:"available",active:true},
-    {id:"veh_02",code:"CAR-02",name:"Car 02",typeId:"type_car",pricingProfileId:"price_standard",extensionProfileId:"ext_standard",batteryTypeId:"bt_2s",currentBatteryId:"bat_02",manualStatus:"available",active:true}
+    {id:"veh_01",code:"CAR-01",name:"Hyper Car 01",typeId:"type_car",pricingProfileId:"price_standard",extensionProfileId:"ext_standard",batteryTypeId:"bt_2s",currentBatteryId:"bat_01",manualStatus:"available",active:true},
+    {id:"veh_02",code:"CAR-02",name:"Hyper Car 02",typeId:"type_car",pricingProfileId:"price_standard",extensionProfileId:"ext_standard",batteryTypeId:"bt_2s",currentBatteryId:"bat_02",manualStatus:"available",active:true}
   ],
   rides:[],sumoMatches:[],queue:[],maintenance:[],expenses:[],eodClosings:[],
   staff:[
-    {id:"op_01",name:"Operator 1",pin:"1111",active:true,permissions:{arena:true,sumo:true,queue:true,rides:true,batteries:true,batteryActions:true,maintenance:true,viewRevenue:true}}
+    {id:"op_01",name:"Operator 1",pin:"1111",active:true,permissions:{arena:true,sumo:false,queue:true,rides:true,batteries:true,batteryActions:true,maintenance:true,viewRevenue:true}}
   ],
   settings:{alarmRepeat:2,warningSeconds:60,ownerPin:"1234",paymentMethods:["Cash","UPI","Other"],expenseCategories:["Fuel / Transport","Repair / Parts","Staff / Food","Rent / Fees","Cleaning / Supplies","Other"],nextRideNumber:1,nextSumoNumber:1}
 };
@@ -68,7 +58,7 @@ const DEFAULT = {
 let data = structuredClone(DEFAULT);
 let memory = {selectedVehicle:null, selectedPackage:null, payment:"Cash", lastPayment:"Cash", selectedRide:null, selectedExtension:null, extensionPayment:"Cash", endReason:"Customer finished", selectedQueue:null, selectedMaintenanceReason:"Vehicle issue", ownerUnlocked:false, ownerTab:"overview", rideRange:"today", batteryFilter:"all", highlightBatteryId:null, loginRole:"operator",selectedOperator:null,currentUser:null,currentView:"arena", sumoPlayerCount:4, selectedSumoPackage:null, sumoPayment:"Cash", sumoAssignments:{}, sumoQueueId:null, queueActivityType:"ride", queuePlayerCount:4,eodDate:localDateKey(),eodMode:"day",eodStart:`${localDateKey().slice(0,7)}-01`,eodEnd:localDateKey(),expenseCategory:null,expensePayment:"Cash"};
 const PERMISSIONS={
-  sumo:{label:"Sumo Battle",desc:"Start and manage RC Sumo matches"},
+
   queue:{label:"Queue",desc:"View, add, start and remove waiting customers"},
   rides:{label:"Ride History",desc:"View and search ride transactions"},
   batteries:{label:"Equipment",desc:"View vehicle and battery status in one operational screen"},
@@ -77,7 +67,7 @@ const PERMISSIONS={
   viewRevenue:{label:"Revenue",desc:"See today's revenue on the operator dashboard"}
 };
 function currentStaff(){return memory.currentUser?.role==="operator"?data.staff.find(s=>s.id===memory.currentUser.id):null}
-function can(key){if(memory.currentUser?.role==="owner")return true;if(key==="arena")return !!memory.currentUser;return !!currentStaff()?.permissions?.[key]}
+function can(key){if(key==="sumo")return false;if(memory.currentUser?.role==="owner")return true;if(key==="arena")return !!memory.currentUser;return !!currentStaff()?.permissions?.[key]}
 function requirePerm(key){if(can(key))return true;toast("Access not enabled for this operator");return false}
 function actor(){return memory.currentUser?{role:memory.currentUser.role,id:memory.currentUser.id||"owner",name:memory.currentUser.name||"Owner"}:{role:"unknown",id:"",name:""}}
 
@@ -105,7 +95,7 @@ function mergeDefaults(x){
   return merged;
 }
 function normalizeOperationalState(state){
-  if(!(state.vehicleTypes||[]).some(t=>t.id==="type_sumo"))state.vehicleTypes.push({id:"type_sumo",name:"RC Sumo",active:true});
+  if(!(state.vehicleTypes||[]).some(t=>t.id==="type_sumo"))state.vehicleTypes.push({id:"type_sumo",name:"Legacy Sumo",active:false});
   const validBatteryStatuses=new Set(["ready","installed","in_use","charging","needs_charge","maintenance"]);
   const typeIds=new Set((state.batteryTypes||[]).map(t=>t.id));
   const vehicleIds=new Set((state.vehicles||[]).map(v=>v.id));
@@ -161,6 +151,7 @@ function normalizeOperationalState(state){
   state.settings.expenseCategories=state.settings.expenseCategories.map(x=>String(x||"").trim()).filter(Boolean);
   (state.expenses||[]).forEach(e=>{e.id=e.id||uid("exp");e.date=e.date||localDateKey(e.createdAt||Date.now());e.amount=Math.max(0,Number(e.amount)||0);e.category=String(e.category||"Other");e.paymentMethod=state.settings.paymentMethods.includes(e.paymentMethod)?e.paymentMethod:(state.settings.paymentMethods[0]||"Cash");e.note=String(e.note||"");});
   (state.eodClosings||[]).forEach(c=>{c.id=c.id||uid("eod");c.date=c.date||localDateKey(c.closedAt||Date.now());c.actualCash=c.actualCash===null||c.actualCash===undefined?null:Math.max(0,Number(c.actualCash)||0);});
+  migrateActivityOS(state);
   return state;
 }
 
@@ -280,7 +271,7 @@ function vehicleState(v){
   const r=activeRide(v.id); if(r)return rideStatus(r);
   if(v.manualStatus==="maintenance")return"maintenance";
   if(!v.currentBatteryId)return"no-battery";
-  const b=battery(v.currentBatteryId); if(!b || !["installed","ready"].includes(b.status))return"no-battery";
+  const b=battery(v.currentBatteryId); if(!b || !["installed","ready"].includes(b.status)||batteryRemaining(b)<=batteryPolicy(b).reserve)return"no-battery";
   return"available";
 }
 function nextRideNumber(){const n=Number(data.settings.nextRideNumber||1);data.settings.nextRideNumber=n+1;return `KAS-R-${String(n).padStart(6,"0")}`}
@@ -323,7 +314,7 @@ function dateKeysInRange(start,end,maxDays=3660){
 }
 function nextBatteryCode(){let n=1;const used=new Set(data.batteries.map(b=>String(b.code||"").toUpperCase()));while(used.has(`B${String(n).padStart(2,"0")}`))n++;return `B${String(n).padStart(2,"0")}`}
 function nextVehicleCode(){let n=1;const used=new Set(data.vehicles.map(v=>String(v.code||"").toUpperCase()));while(used.has(`VEH-${String(n).padStart(2,"0")}`))n++;return `VEH-${String(n).padStart(2,"0")}`}
-function readyBatteriesFor(v){return data.batteries.filter(b=>b.status==="ready"&&b.typeId===v?.batteryTypeId).slice().sort((a,b)=>(Number(a.totalRuntimeMs||0)-Number(b.totalRuntimeMs||0))||(Number(a.chargeCycles||0)-Number(b.chargeCycles||0))||String(a.code).localeCompare(String(b.code),undefined,{numeric:true,sensitivity:"base"}))}
+function readyBatteriesFor(v){return data.batteries.filter(b=>b.status==="ready"&&!b.assignedVehicleId&&b.typeId===v?.batteryTypeId&&batteryRemaining(b)>batteryPolicy(b).reserve).slice().sort((a,b)=>(Number(a.totalRuntimeMs||0)-Number(b.totalRuntimeMs||0))||(Number(a.chargeCycles||0)-Number(b.chargeCycles||0))||String(a.code).localeCompare(String(b.code),undefined,{numeric:true,sensitivity:"base"}))}
 function recommendedBattery(v){return readyBatteriesFor(v)[0]||null}
 function equipmentCounts(){return {needsCharge:data.batteries.filter(b=>b.status==="needs_charge").length,charging:data.batteries.filter(b=>b.status==="charging").length,ready:data.batteries.filter(b=>b.status==="ready").length,maintenance:data.vehicles.filter(v=>v.active!==false&&v.manualStatus==="maintenance").length,missingBattery:data.vehicles.filter(v=>v.active!==false&&!v.currentBatteryId&&v.manualStatus!=="maintenance").length}}
 function equipmentVehicleStatusLabel(v){const st=vehicleState(v);return st==="available"?"Ready":st==="no-battery"?"Battery Required":st==="maintenance"?"Maintenance":st==="sumo"?"In Sumo":st==="over"?"Time Up":st==="ending"?"Ending Soon":st==="paused"?"Paused":"In Use"}
@@ -497,7 +488,7 @@ function renderRideChoices(){
 }
 $("#startRide").onclick=()=>{
   const v=vehicle(memory.selectedVehicle),p=packageBy(memory.selectedPackage);if(!v||!p)return toast("Choose a package");if(vehicleState(v)!=="available")return toast("Vehicle is no longer available");if($("#startRide").disabled)return;$("#startRide").disabled=true;memory.lastPayment=memory.payment;const now=Date.now(),b=battery(v.currentBatteryId);if(!b){$("#startRide").disabled=false;return toast("Assign a battery first")}b.status="in_use";b.assignedVehicleId=v.id;
-  const ride={id:uid("ride"),rideNumber:nextRideNumber(),vehicleId:v.id,vehicleName:v.name,customer:$("#customerName").value.trim(),mobile:$("#customerMobile").value.trim(),packageId:p.id,baseMinutes:p.minutes,baseAmount:p.price,extensions:[],discount:0,totalAmount:p.price,payments:[{method:memory.payment,amount:p.price,at:now}],startedAt:now,endsAt:now+p.minutes*60000,endedAt:null,date:localDateKey(now),pausedAt:null,totalPausedMs:0,endReason:null,alarmAcknowledged:false,batteryId:b.id,batteryHistory:[{batteryId:b.id,chargeSessionId:ensureChargeSession(b),installedAt:now,removedAt:null,activeMs:0,activeStartedAt:now,runtimeCredited:false}],createdBy:actor()};data.rides.push(ride);
+  const ride={activityId:activityForVehicle(v)?.id,activityName:activityForVehicle(v)?.name,id:uid("ride"),rideNumber:nextRideNumber(),vehicleId:v.id,vehicleName:v.name,customer:$("#customerName").value.trim(),mobile:$("#customerMobile").value.trim(),packageId:p.id,baseMinutes:p.minutes,baseAmount:p.price,extensions:[],discount:0,totalAmount:p.price,payments:[{method:memory.payment,amount:p.price,at:now}],startedAt:now,endsAt:now+p.minutes*60000,endedAt:null,date:localDateKey(now),pausedAt:null,totalPausedMs:0,endReason:null,alarmAcknowledged:false,batteryId:b.id,batteryHistory:[{batteryId:b.id,chargeSessionId:ensureChargeSession(b),installedAt:now,removedAt:null,activeMs:0,activeStartedAt:now,runtimeCredited:false}],createdBy:actor()};data.rides.push(ride);
   if(memory.selectedQueue){data.queue=data.queue.filter(q=>q.id!==memory.selectedQueue);memory.selectedQueue=null}
   save();close("rideModal");unlockAudio();render();toast("Ride started");
 };
@@ -545,14 +536,15 @@ function renderOwner(){
   if(memory.ownerTab==="eod")c.innerHTML=ownerEod();
   if(memory.ownerTab==="equipment")c.innerHTML=ownerEquipment();
   if(memory.ownerTab==="pricing")c.innerHTML=ownerPricing();
-  if(memory.ownerTab==="activities")c.innerHTML=ownerActivities();
+  if(memory.ownerTab==="activities")c.innerHTML=activityOSSettings();
+  if(memory.ownerTab==="partners")c.innerHTML=partnerDashboard();
   if(memory.ownerTab==="staff")c.innerHTML=ownerStaff();
   if(memory.ownerTab==="settings")c.innerHTML=ownerSettings();
   if(memory.ownerTab==="backup")c.innerHTML=ownerBackup();
   if(["equipment","pricing","activities","staff","settings"].includes(memory.ownerTab)) c.insertAdjacentHTML("afterbegin",`<div class="owner-autosave-note">${svg("i-check")} Routine operations are one-tap. Detailed setup is collapsed below and auto-saves when you leave a field.</div>`);
-  const ownerNames={overview:"Overview",eod:"End of Day",equipment:"Equipment Control",pricing:"Ride Pricing",activities:"Activities & Sumo",staff:"Staff & Access",settings:"Business Settings",backup:"Backup & Data"};if($("#ownerConsoleTitle"))$("#ownerConsoleTitle").textContent=ownerNames[memory.ownerTab]||"Owner Console";
+  const ownerNames={overview:"Overview",eod:"End of Day",equipment:"Equipment Control",pricing:"Ride Pricing",activities:"Activities & Battery Policy",partners:"Partners & Finance",staff:"Staff & Access",settings:"Business Settings",backup:"Backup & Data"};if($("#ownerConsoleTitle"))$("#ownerConsoleTitle").textContent=ownerNames[memory.ownerTab]||"Owner Console";
   $$(`[data-owner-goto]`).forEach(b=>b.onclick=()=>{memory.ownerTab=b.dataset.ownerGoto;renderOwner();$("#ownerContent")?.scrollTo({top:0,behavior:"smooth"})});
-  bindOwnerActions();
+  bindOwnerActions();bindActivityOSActions();
 }
 function ownerOverview(){
   const date=localDateKey(),salesInfo=salesBreakdownForDate(date),expInfo=expenseBreakdownForDate(date),rides=salesInfo.rides,sumo=salesInfo.sumo,total=salesInfo.sales,expenses=expInfo.total,net=total-expenses;
@@ -687,7 +679,7 @@ function bindOwnerActions(){
   $$('[data-owner-battery-details]').forEach(b=>b.onclick=()=>openBatteryDetails(b.dataset.ownerBatteryDetails));
   $$('[data-owner-assign-battery]').forEach(b=>b.onclick=()=>{const id=b.dataset.ownerAssignBattery;close("ownerModal",true);openBatterySwap(id)});
   $('[data-owner-open-sumo]')?.addEventListener('click',()=>{close("ownerModal",true);switchView("sumo",false);if(historyReady)setHistory("sumo",null,"replace")});
-  $('[data-add-sumo-vehicle]')?.addEventListener('click',()=>{let type=data.vehicleTypes.find(t=>t.id==="type_sumo");if(!type){type={id:"type_sumo",name:"RC Sumo",active:true};data.vehicleTypes.push(type)}let n=1,code;const used=new Set(data.vehicles.map(v=>String(v.code||"").toUpperCase()));do{code=`SUMO-${String(n++).padStart(2,"0")}`}while(used.has(code));const id=uid("veh");data.vehicles.push({id,code,name:`Sumo ${n-1}`,typeId:"type_sumo",pricingProfileId:data.pricingProfiles[0]?.id,extensionProfileId:data.extensionProfiles[0]?.id,batteryTypeId:data.batteryTypes[0]?.id,currentBatteryId:null,manualStatus:"available",active:true});save();renderOwner();render();toast(`${code} added — assign a battery before use`)});
+  $('[data-add-sumo-vehicle]')?.addEventListener('click',()=>{let type=data.vehicleTypes.find(t=>t.id==="type_sumo");if(!type){type={id:"type_sumo",name:"Legacy Sumo",active:false};data.vehicleTypes.push(type)}let n=1,code;const used=new Set(data.vehicles.map(v=>String(v.code||"").toUpperCase()));do{code=`SUMO-${String(n++).padStart(2,"0")}`}while(used.has(code));const id=uid("veh");data.vehicles.push({id,code,name:`Sumo ${n-1}`,typeId:"type_sumo",pricingProfileId:data.pricingProfiles[0]?.id,extensionProfileId:data.extensionProfiles[0]?.id,batteryTypeId:data.batteryTypes[0]?.id,currentBatteryId:null,manualStatus:"available",active:true});save();renderOwner();render();toast(`${code} added — assign a battery before use`)});
   $('[data-add-sumo-package]')?.addEventListener('click',()=>{const id=uid("sumopkg");data.sumoPackages.push({id,name:"New Sumo Package",pricingMode:"per_player",price:150,minPlayers:4,maxPlayers:5,durationMinutes:3,active:true});save();renderOwner();toast("Sumo package added");focusOwnerField(`[data-sumo-p-name="${id}"]`)});
   $$('[data-save-sumo-package]').forEach(b=>b.onclick=()=>{const id=b.dataset.saveSumoPackage,p=sumoPackageBy(id);if(!p)return;p.name=$(`[data-sumo-p-name="${id}"]`).value.trim()||p.name;p.pricingMode=$(`[data-sumo-p-mode="${id}"]`).value;p.price=Math.max(0,Number($(`[data-sumo-p-price="${id}"]`).value)||0);p.durationMinutes=Math.max(0,Number($(`[data-sumo-p-duration="${id}"]`).value)||0);p.minPlayers=Math.min(5,Math.max(4,Number($(`[data-sumo-p-min="${id}"]`).value)||4));p.maxPlayers=Math.min(5,Math.max(p.minPlayers,Number($(`[data-sumo-p-max="${id}"]`).value)||5));save();renderOwner();renderSumo();toast("Sumo package saved")});
   $$('[data-delete-sumo-package]').forEach(b=>b.onclick=()=>{const p=sumoPackageBy(b.dataset.deleteSumoPackage);if(!p||data.sumoPackages.length<=1)return;if(!confirm(`Delete ${p.name}? Existing match history will be preserved.`))return;data.sumoPackages=data.sumoPackages.filter(x=>x.id!==p.id);save();renderOwner();renderSumo();toast("Sumo package deleted")});
@@ -784,4 +776,4 @@ document.addEventListener("focusin",e=>{if(!e.target.matches("input,textarea"))r
 $("#customerName")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("#customerMobile")?.focus()}});
 $("#customerMobile")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();e.target.blur();setTimeout(()=>$("#packageSection")?.scrollIntoView({block:"start",behavior:"smooth"}),120)}});
 window.addEventListener("popstate",e=>{if(!memory.currentUser)return;applyHistoryState(e.state)});
-(async function start(){await initState();renderLoginChoices();try{const s=JSON.parse(sessionStorage.getItem("kas-session")||"null");if(s?.role==="owner")memory.currentUser={role:"owner",id:"owner",name:"Owner"};if(s?.role==="operator"&&data.staff.some(x=>x.id===s.id&&x.active!==false))memory.currentUser=s}catch{}applyAccessUI();render();updateSyncStatus();historyReady=true;setHistory(memory.currentView||"arena",null,"replace");setInterval(checkTimers,1000);if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("sw.js").catch(()=>{});})();
+document.addEventListener("DOMContentLoaded",async function start(){await initState();renderLoginChoices();try{const s=JSON.parse(sessionStorage.getItem("kas-session")||"null");if(s?.role==="owner")memory.currentUser={role:"owner",id:"owner",name:"Owner"};if(s?.role==="operator"&&data.staff.some(x=>x.id===s.id&&x.active!==false))memory.currentUser=s}catch{}applyAccessUI();render();updateSyncStatus();historyReady=true;setHistory(memory.currentView||"arena",null,"replace");setInterval(checkTimers,1000);if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("sw.js").catch(()=>{});});

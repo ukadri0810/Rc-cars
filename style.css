@@ -164,3 +164,4 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 @media(max-width:420px){.battery-simple-metrics{gap:10px}.charge-history-row{grid-template-columns:1fr auto}.charge-history-row>span:last-child{grid-column:2}.battery-detail-current strong{font-size:18px}}
 
 #batteryDetailsModal{z-index:80}
+.os-starts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.os-task{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;margin:6px 0;background:#fff3cf;border-radius:10px}.os-task button{padding:10px;background:#1678b7;color:white;border:0;border-radius:8px}#ownerContent form{padding:12px 0}#ownerContent form select{max-width:100%}#smartOperations{margin-bottom:12px}#smartOperations h3{font-size:16px} [data-view="sumo"]{display:none!important}

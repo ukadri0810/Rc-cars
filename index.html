@@ -77,7 +77,7 @@
       <div id="revenueSummary"><strong id="todayRevenue">₹0</strong><span>Today</span></div>
     </section>
 
-    <section class="view active" id="view-arena">
+    <section class="view active" id="view-arena"><div id="smartOperations" class="panel"></div>
       <div class="section-head">
         <div><h2>Fleet</h2><p>Tap a ready vehicle to start billing a ride.</p></div>
       </div>
@@ -264,7 +264,7 @@
     <div class="modal-card owner-card">
       <div class="modal-head owner-head"><div><div class="eyebrow">OWNER CONSOLE</div><h2 id="ownerConsoleTitle">Overview</h2></div><button class="icon-btn" type="button" aria-label="Close Owner Hub" data-close="ownerModal"><svg><use href="#i-close"/></svg></button></div>
       <div class="owner-tabs" id="ownerTabs">
-        <button class="active" data-owner-tab="overview">Overview</button><button data-owner-tab="eod">EOD</button><button data-owner-tab="equipment">Equipment</button><button data-owner-tab="pricing">Pricing</button><button data-owner-tab="activities">Activities</button><button data-owner-tab="staff">Staff & Access</button><button data-owner-tab="settings">Settings</button><button data-owner-tab="backup">Backup</button>
+        <button class="active" data-owner-tab="overview">Overview</button><button data-owner-tab="eod">EOD</button><button data-owner-tab="equipment">Equipment</button><button data-owner-tab="pricing">Pricing</button><button data-owner-tab="activities">Activities</button><button data-owner-tab="partners">Partners & Finance</button><button data-owner-tab="staff">Staff & Access</button><button data-owner-tab="settings">Settings</button><button data-owner-tab="backup">Backup</button>
       </div>
       <div id="ownerContent" class="owner-content"></div>
     </div>
@@ -274,5 +274,6 @@
   <input id="importFile" type="file" accept="application/json" hidden>
   <div id="toast" class="toast"></div>
   <script src="app.js"></script>
+  <script src="activity-os.js"></script>
 </body>
 </html>
