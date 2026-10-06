@@ -50,25 +50,26 @@
       <img class="brand-logo" src="assets/kas-logo.png" alt="Karde Adventure Sports logo">
       <div>
         <div class="eyebrow" id="roleLabel">SIGNED OUT</div>
-        <h1 id="businessTitle">KAS RC Arena</h1>
+        <h1 id="businessTitle">KAS Activity Operations</h1>
         <div class="brand-subtitle">Karde Adventure Sports</div>
       </div>
     </div>
     <div class="top-actions">
       <div class="sync-status" id="syncStatus" role="status" aria-live="polite"><span class="sync-dot"></span><span id="syncStatusText">Local</span></div>
-      <button class="admin-btn hidden" id="installBtn" type="button" aria-label="Install KAS RC Arena"><svg><use href="#i-install"/></svg><span class="desktop-label">Install</span></button>
-      <button class="admin-btn sound-only" id="soundTest" type="button" aria-label="Test ringer"><svg><use href="#i-volume"/></svg><span class="desktop-label">Ringer</span></button>
-      <button class="admin-btn hidden" id="adminBtn" type="button" aria-label="Open Owner Console"><svg><use href="#i-settings"/></svg><span class="desktop-label">Owner Console</span></button>
-      <button class="admin-btn hidden" id="logoutBtn" type="button" aria-label="Logout"><svg><use href="#i-logout"/></svg><span class="desktop-label">Logout</span></button>
+      <details class="account-menu" id="accountMenu"><summary>Account</summary><div class="account-popover">
+        <button class="admin-btn hidden" id="adminBtn" type="button">Owner portal</button>
+        <button class="admin-btn sound-only" id="soundTest" type="button">Test alarm</button>
+        <button class="admin-btn hidden" id="installBtn" type="button">Install app</button>
+        <button class="admin-btn hidden" id="logoutBtn" type="button">Sign out</button>
+      </div></details>
     </div>
   </header>
 
   <main class="wrap">
     <nav class="desktop-module-nav" id="desktopModuleNav" aria-label="Main navigation">
-      <button class="active" data-view="arena" data-permission="arena"><svg><use href="#i-home"/></svg> Arena</button>
-      <button data-view="sumo" data-permission="sumo"><svg><use href="#i-sumo"/></svg> Sumo</button>
-      <button data-view="queue" data-permission="queue"><svg><use href="#i-queue"/></svg> Queue</button>
-      <button data-view="rides" data-permission="rides"><svg><use href="#i-history"/></svg> Rides</button>
+      <button class="active" data-view="arena" data-permission="arena"><svg><use href="#i-home"/></svg> Counter</button>
+      <button data-view="queue" data-permission="queue"><svg><use href="#i-queue"/></svg> Waiting</button>
+      <button data-view="rides" data-permission="rides"><svg><use href="#i-history"/></svg> Today</button>
       <button data-view="batteries" data-permission="batteries"><svg><use href="#i-battery"/></svg> Equipment</button>
     </nav>
     <section class="summary" id="summaryCards">
@@ -79,7 +80,7 @@
 
     <section class="view active" id="view-arena"><div id="smartOperations" class="panel"></div>
       <div class="section-head">
-        <div><h2>Fleet</h2><p>Tap a ready vehicle to start billing a ride.</p></div>
+        <div><h2>Cars & active rides</h2><p>Start, extend, and collect customer rides.</p></div>
       </div>
       <div class="status-legend" aria-label="Ride status colours">
         <span><i class="legend-dot running-dot"></i>Running</span>
@@ -109,12 +110,12 @@
     </section>
 
     <section class="view" id="view-queue">
-      <div class="section-head"><div><h2>Queue</h2><p>Manage customers waiting for a vehicle.</p></div><button class="secondary compact-btn" id="addQueue"><svg><use href="#i-plus"/></svg> Add Customer</button></div>
+      <div class="section-head"><div><h2>Waiting customers</h2><p>Add a customer, then start when a car is ready.</p></div><button class="secondary compact-btn" id="addQueue"><svg><use href="#i-plus"/></svg> Add Customer</button></div>
       <div id="queueList" class="stack-list"></div>
     </section>
 
     <section class="view" id="view-rides">
-      <div class="section-head"><div><h2>Ride History</h2><p>Search and review ride transactions.</p></div></div>
+      <div class="section-head"><div><h2>Transactions</h2><p>Search and review ride transactions.</p></div></div>
       <div class="filter-bar"><input id="rideSearch" placeholder="Search customer, ride ID or vehicle"><button class="chip active" data-range="today">Today</button><button class="chip" data-range="all">All</button></div>
       <div id="rideHistory" class="ride-list"></div>
     </section>
@@ -132,17 +133,16 @@
   </main>
 
   <nav class="bottom-nav hidden" id="mainNav" aria-label="Main navigation">
-    <button class="active" data-view="arena" data-permission="arena"><svg><use href="#i-home"/></svg><span>Arena</span></button>
-    <button data-view="sumo" data-permission="sumo"><svg><use href="#i-sumo"/></svg><span>Sumo</span></button>
-    <button data-view="queue" data-permission="queue"><svg><use href="#i-queue"/></svg><span>Queue</span><b id="queueBadge" class="badge hidden">0</b></button>
-    <button data-view="rides" data-permission="rides"><svg><use href="#i-history"/></svg><span>Rides</span></button>
+    <button class="active" data-view="arena" data-permission="arena"><svg><use href="#i-home"/></svg><span>Counter</span></button>
+    <button data-view="queue" data-permission="queue"><svg><use href="#i-queue"/></svg><span>Waiting</span><b id="queueBadge" class="badge hidden">0</b></button>
+    <button data-view="rides" data-permission="rides"><svg><use href="#i-history"/></svg><span>Today</span></button>
     <button data-view="batteries" data-permission="batteries"><svg><use href="#i-battery"/></svg><span>Equipment</span></button>
   </nav>
 
 
   <div class="login-screen" id="loginScreen">
     <div class="login-card">
-      <div class="login-brand"><img src="assets/kas-logo.png" alt="Karde Adventure Sports logo"><div><div class="eyebrow">KARDE ADVENTURE SPORTS</div><h2>KAS RC Arena Sign in</h2><p>Choose how you are using the system.</p></div></div>
+      <div class="login-brand"><img src="assets/kas-logo.png" alt="Karde Adventure Sports logo"><div><div class="eyebrow">KARDE ADVENTURE SPORTS</div><h2>KAS Activity Operations</h2><p>Choose how you are using the system.</p></div></div>
       <div class="login-role-tabs"><button class="active" data-login-role="operator">Operator</button><button data-login-role="owner">Owner</button></div>
       <div id="operatorLoginPanel">
         <div class="field-label">Select operator</div><div id="operatorChoices" class="choice-grid"></div>
@@ -195,17 +195,17 @@
     <div class="modal-card">
       <div class="modal-head"><div><div class="eyebrow">WAITING LIST</div><h2>Add Customer</h2></div><button class="icon-btn" type="button" aria-label="Close queue form" data-close="queueModal"><svg><use href="#i-close"/></svg></button></div>
       <div class="field-label">Activity</div>
-      <div class="segmented queue-activity-buttons" id="queueActivityButtons"><button class="active" data-queue-activity="ride">Timed Ride</button><button data-queue-activity="sumo">Sumo Battle</button></div>
+      <div class="segmented queue-activity-buttons" id="queueActivityButtons"><button class="active" data-queue-activity="ride">Timed Ride</button></div>
       <label id="queueNameLabel">Customer name<input id="queueName" maxlength="40" placeholder="Customer name"></label>
       <label>Mobile number <span class="optional">Optional</span><input id="queueMobile" inputmode="tel" maxlength="15" placeholder="Optional"></label>
       <div id="queueSumoPlayers" class="hidden"><div class="field-label">Players</div><div class="segmented two"><button class="active" data-queue-players="4">4 Players</button><button data-queue-players="5">5 Players</button></div></div>
-      <button class="primary" id="saveQueue"><svg><use href="#i-plus"/></svg> Add to Queue</button>
+      <button class="primary" id="saveQueue"><svg><use href="#i-plus"/></svg> Add to Waiting</button>
     </div>
   </div>
 
   <div class="modal hidden" id="queueStartModal" role="dialog" aria-modal="true">
     <div class="modal-card">
-      <div class="modal-head"><div><div class="eyebrow">START FROM QUEUE</div><h2 id="queueCustomerTitle">Customer</h2></div><button class="icon-btn" type="button" aria-label="Close queue start" data-close="queueStartModal"><svg><use href="#i-close"/></svg></button></div>
+      <div class="modal-head"><div><div class="eyebrow">START WAITING CUSTOMER</div><h2 id="queueCustomerTitle">Customer</h2></div><button class="icon-btn" type="button" aria-label="Close queue start" data-close="queueStartModal"><svg><use href="#i-close"/></svg></button></div>
       <div class="field-label">Choose available vehicle</div><div id="queueVehicleButtons" class="choice-grid"></div>
     </div>
   </div>
@@ -260,20 +260,27 @@
     </div>
   </div>
 
-  <div class="modal hidden" id="ownerModal" role="dialog" aria-modal="true">
-    <div class="modal-card owner-card">
-      <div class="modal-head owner-head"><div><div class="eyebrow">OWNER CONSOLE</div><h2 id="ownerConsoleTitle">Overview</h2></div><button class="icon-btn" type="button" aria-label="Close Owner Hub" data-close="ownerModal"><svg><use href="#i-close"/></svg></button></div>
-      <div class="owner-tabs" id="ownerTabs">
-        <button class="active" data-owner-tab="overview">Overview</button><button data-owner-tab="eod">EOD</button><button data-owner-tab="equipment">Equipment</button><button data-owner-tab="pricing">Pricing</button><button data-owner-tab="activities">Activities</button><button data-owner-tab="partners">Partners & Finance</button><button data-owner-tab="staff">Staff & Access</button><button data-owner-tab="settings">Settings</button><button data-owner-tab="backup">Backup</button>
-      </div>
-      <div id="ownerContent" class="owner-content"></div>
-    </div>
-  </div>
+  <section class="owner-workspace hidden" id="ownerModal" aria-label="Owner portal">
+    <aside class="owner-navigation"><div class="owner-nav-heading"><span>OWNER PORTAL</span><button id="ownerMenuToggle" aria-expanded="false" aria-controls="ownerTabs" type="button">Menu</button></div>
+      <nav id="ownerTabs" class="owner-tabs" aria-label="Owner navigation">
+        <button data-owner-tab="overview">Overview</button>
+        <button data-owner-tab="operations">Operations</button>
+        <button data-owner-tab="equipment">Equipment</button>
+        <button data-owner-tab="activities">Activities & Pricing</button>
+        <button data-owner-tab="finance">Finance</button>
+        <button data-owner-tab="staff">Staff</button>
+        <button data-owner-tab="settings">Settings</button>
+        <button id="ownerCounter" type="button">Switch to Counter</button>
+      </nav>
+    </aside>
+    <div class="owner-page"><div class="owner-page-head"><div><div class="eyebrow">KARDE ADVENTURE SPORTS</div><h2 id="ownerConsoleTitle">Overview</h2></div><span id="ownerSaveStatus" role="status">All changes saved</span></div><div id="ownerContent" class="owner-content"></div></div>
+  </section>
 
   <audio id="ringer" src="assets/time-over-ringer.wav" preload="auto"></audio>
   <input id="importFile" type="file" accept="application/json" hidden>
   <div id="toast" class="toast"></div>
   <script src="app.js"></script>
   <script src="activity-os.js"></script>
+  <script src="portal-ui.js"></script>
 </body>
 </html>

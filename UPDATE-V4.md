@@ -4,10 +4,10 @@
 1. Export a JSON backup from the old system before updating.
 2. Replace the deployed application files with this folder's contents. Keep the same origin to retain IndexedDB data. Serve over HTTPS or localhost; do not open index.html directly.
 3. Owner login uses the existing PIN; fresh-install owner PIN is 1234 and operator PIN is 1111. Change these in Settings / Staff before use. Local PINs control the interface, not server-enforced security.
-4. Owner → Pricing: launch package and extension are 3 minutes / ₹100. Both can be edited independently. First upgrade disables old package choices without deleting historical transactions.
-5. Owner → Activities: set safe backup and reserve per battery type. Default 20 / 5 minutes. Eligibility uses exact milliseconds: a 3-minute ride can start at 12 minutes used, but another cannot start at 15.
+4. Owner → Activities & Pricing → Packages & extensions: launch package and extension are 3 minutes / ₹100. Both can be edited independently. First upgrade disables old package choices without deleting historical transactions.
+5. Owner → Activities & Pricing → Activities & battery policy: set safe backup and reserve per battery type. Default 20 / 5 minutes. Eligibility uses exact milliseconds: a 3-minute ride can start at 12 minutes used, but another cannot start at 15.
 6. Operator: START HYPER CAR recommends the least-used eligible car. Select payment and start. RETURNED completes an expired ride. Battery changes pause a running ride; physically install the replacement, then tap RESUME.
-7. Owner → Partners & Finance: enter actual names, shares, contributions, and costs. Starting contribution balances are zero. Record operating costs in EOD. Allocate only the surplus you intend to split, leaving the rest unallocated. Record payouts separately.
+7. Owner → Finance → Partners & investment: enter actual names, shares, contributions, and costs. Starting contribution balances are zero. Record operating costs in EOD. Allocate only the surplus you intend to split, leaving the rest unallocated. Record payouts separately.
 
 ## Included
 - Configurable enabled timed activities and equipment types; new activities are disabled initially.
