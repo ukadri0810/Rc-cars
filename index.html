@@ -8,8 +8,11 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/kas-logo.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
-  <link rel="stylesheet" href="style.css">
-  <title>KAS RC Arena</title>
+  <link rel="stylesheet" href="style.css?v=4.4">
+  <link rel="stylesheet" href="portal.css?v=4.4">
+  <link rel="stylesheet" href="finance.css?v=4.4">
+  <link rel="stylesheet" href="workspace.css?v=4.4">
+  <title>KAS Activity Operations</title>
 </head>
 <body class="signed-out">
   <svg class="svg-sprite" aria-hidden="true">
@@ -56,16 +59,18 @@
     </div>
     <div class="top-actions">
       <div class="sync-status" id="syncStatus" role="status" aria-live="polite"><span class="sync-dot"></span><span id="syncStatusText">Local</span></div>
-      <details class="account-menu" id="accountMenu"><summary>Account</summary><div class="account-popover">
-        <button class="admin-btn hidden" id="adminBtn" type="button">Owner portal</button>
-        <button class="admin-btn sound-only" id="soundTest" type="button">Test alarm</button>
-        <button class="admin-btn hidden" id="installBtn" type="button">Install app</button>
-        <button class="admin-btn hidden" id="logoutBtn" type="button">Sign out</button>
-      </div></details>
+      <div class="account-menu" id="accountMenu"><button class="account-toggle" id="accountToggle" type="button" aria-expanded="false" aria-controls="accountPopover">Account</button></div>
     </div>
   </header>
 
-  <main class="wrap">
+  <div class="account-popover" id="accountPopover" hidden aria-label="Account actions">
+    <button class="admin-btn hidden" id="adminBtn" type="button">Owner portal</button>
+    <button class="admin-btn sound-only" id="soundTest" type="button">Test alarm</button>
+    <button class="admin-btn hidden" id="installBtn" type="button">Install app</button>
+    <button class="admin-btn hidden" id="logoutBtn" type="button">Sign out</button>
+  </div>
+
+  <main class="wrap" id="counterWorkspace" hidden>
     <nav class="desktop-module-nav" id="desktopModuleNav" aria-label="Main navigation">
       <button class="active" data-view="arena" data-permission="arena"><svg><use href="#i-home"/></svg> Counter</button>
       <button data-view="queue" data-permission="queue"><svg><use href="#i-queue"/></svg> Waiting</button>
@@ -73,9 +78,9 @@
       <button data-view="batteries" data-permission="batteries"><svg><use href="#i-battery"/></svg> Equipment</button>
     </nav>
     <section class="summary" id="summaryCards">
-      <div><strong id="activeCount">0</strong><span>Active</span></div>
-      <div><strong id="readyCount">0</strong><span>Ready</span></div>
-      <div id="revenueSummary"><strong id="todayRevenue">₹0</strong><span>Today</span></div>
+      <div><strong id="activeCount">0</strong><span>Playing now</span></div>
+      <div><strong id="readyCount">0</strong><span>Cars ready</span></div>
+      <div id="revenueSummary"><strong id="todayRevenue">₹0</strong><span>Today sales</span></div>
     </section>
 
     <section class="view active" id="view-arena"><div id="smartOperations" class="panel"></div>
@@ -132,10 +137,10 @@
 
   </main>
 
-  <nav class="bottom-nav hidden" id="mainNav" aria-label="Main navigation">
+  <nav class="bottom-nav hidden" id="mainNav" hidden aria-label="Main navigation">
     <button class="active" data-view="arena" data-permission="arena"><svg><use href="#i-home"/></svg><span>Counter</span></button>
     <button data-view="queue" data-permission="queue"><svg><use href="#i-queue"/></svg><span>Waiting</span><b id="queueBadge" class="badge hidden">0</b></button>
-    <button data-view="rides" data-permission="rides"><svg><use href="#i-history"/></svg><span>Today</span></button>
+    <button data-view="rides" data-permission="rides"><svg><use href="#i-history"/></svg><span>Transactions</span></button>
     <button data-view="batteries" data-permission="batteries"><svg><use href="#i-battery"/></svg><span>Equipment</span></button>
   </nav>
 
@@ -260,7 +265,7 @@
     </div>
   </div>
 
-  <section class="owner-workspace hidden" id="ownerModal" aria-label="Owner portal">
+  <section class="owner-workspace hidden" id="ownerModal" hidden aria-label="Owner portal">
     <aside class="owner-navigation"><div class="owner-nav-heading"><span>OWNER PORTAL</span><button id="ownerMenuToggle" aria-expanded="false" aria-controls="ownerTabs" type="button">Menu</button></div>
       <nav id="ownerTabs" class="owner-tabs" aria-label="Owner navigation">
         <button data-owner-tab="overview">Overview</button>
@@ -279,8 +284,11 @@
   <audio id="ringer" src="assets/time-over-ringer.wav" preload="auto"></audio>
   <input id="importFile" type="file" accept="application/json" hidden>
   <div id="toast" class="toast"></div>
-  <script src="app.js"></script>
-  <script src="activity-os.js"></script>
-  <script src="portal-ui.js"></script>
+  <script src="app.js?v=4.4"></script>
+  <script src="activity-os.js?v=4.4"></script>
+  <script src="portal-ui.js?v=4.4"></script>
+  <script src="finance-ui.js?v=4.4"></script>
+  <script src="settlement.js?v=4.4"></script>
+  <script src="workspace-ui.js?v=4.4"></script>
 </body>
 </html>

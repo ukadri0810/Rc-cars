@@ -1,3 +1,7 @@
+# Current release: KAS Activity Operations v4.4
+
+Read **UPDATE-V4.4.md** for automatic allocation + payment recording and the refreshed owner/operator workspaces. This release retains the Finance dashboard and the portal/header fixes from v4.2–v4.3. The material below documents the earlier v3 foundation.
+
 # KAS RC Arena v3.16 — EOD Custom Range & Frictionless Operations
 
 Local-first PWA for KAS RC Arena. Firebase is intentionally not configured yet.

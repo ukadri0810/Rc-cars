@@ -5,19 +5,29 @@ function portalSection(tab){return ({pricing:'activities',partners:'finance',eod
 function markOwnerSaved(){ownerDraft=false;const status=$('#ownerSaveStatus');if(status)status.textContent='All changes saved'}
 function discardOwnerDraft(){if(!ownerDraft)return true;if(!confirm('You have unsaved changes. Discard them and leave this page?'))return false;markOwnerSaved();return true}
 const portalSave=save;save=()=>{portalSave();markOwnerSaved()};
-function setOwnerPortal(on){document.body.classList.toggle('owner-portal',on);memory.portal=on?'owner':'counter';$('#ownerModal').classList.toggle('hidden',!on);$('#accountMenu')?.removeAttribute('open');if(on)renderOwnerPortal();window.scrollTo({top:0})}
+function syncPortalVisibility(){
+ const signed=!!memory.currentUser,on=signed&&memory.currentUser.role==='owner'&&memory.portal==='owner';
+ document.body.classList.toggle('owner-portal',on);
+ $('#counterWorkspace').hidden=!signed||on;
+ $('#mainNav').hidden=!signed||on;
+ $('#ownerModal').hidden=!on;
+ $('#ownerModal').classList.toggle('hidden',!on);
+ $('#accountMenu').hidden=!signed;
+}
+function closeAccountMenu(){const panel=$('#accountPopover');if(panel)panel.hidden=true;$('#accountToggle')?.setAttribute('aria-expanded','false')}
+function setOwnerPortal(on){document.body.classList.toggle('owner-portal',on);memory.portal=on?'owner':'counter';$('#ownerModal').classList.toggle('hidden',!on);closeAccountMenu();syncPortalVisibility();if(on)renderOwnerPortal();window.scrollTo({top:0})}
 const portalOpen=open;open=(id,push=true)=>{if(id==='ownerModal'){if(memory.currentUser?.role!=='owner')return;setOwnerPortal(true);if(push&&historyReady)setHistory(memory.currentView,id,'push');return}portalOpen(id,push)};
 const portalClose=close;close=(id,skipHistory=false)=>{if(id==='ownerModal'){if(!discardOwnerDraft())return;setOwnerPortal(false);if(!skipHistory&&history.state?.modal===id)history.back();return}portalClose(id,skipHistory)};
-const portalCloseAll=closeAllModals;closeAllModals=()=>{portalCloseAll();document.body.classList.remove('owner-portal');$('#ownerModal').classList.add('hidden');memory.portal='counter'};
+const portalCloseAll=closeAllModals;closeAllModals=()=>{portalCloseAll();document.body.classList.remove('owner-portal');$('#ownerModal').classList.add('hidden');memory.portal='counter';syncPortalVisibility()};
 const portalLogin=login;login=(role,user)=>{memory.portal=role==='owner'?'owner':'counter';portalLogin(role,user);if(role==='owner'){memory.ownerTab='overview';setOwnerPortal(true);if(historyReady)setHistory('arena','ownerModal','replace')}};
-const portalLogout=logout;logout=()=>{if(!discardOwnerDraft())return;portalLogout();document.body.classList.remove('owner-portal');$('#ownerModal').classList.add('hidden');memory.portal=undefined;$('#accountMenu')?.removeAttribute('open')};$('#logoutBtn').onclick=logout;
-const portalAccess=applyAccessUI;applyAccessUI=()=>{portalAccess();if(memory.currentUser?.role==='owner'&&memory.portal===undefined){memory.portal='owner';document.body.classList.add('owner-portal');$('#ownerModal').classList.remove('hidden');renderOwnerPortal()}if(memory.currentUser?.role!=='owner'){document.body.classList.remove('owner-portal');$('#ownerModal').classList.add('hidden')}};
+const portalLogout=logout;logout=()=>{if(!discardOwnerDraft())return;portalLogout();document.body.classList.remove('owner-portal');$('#ownerModal').classList.add('hidden');memory.portal=undefined;syncPortalVisibility();closeAccountMenu()};$('#logoutBtn').onclick=logout;
+const portalAccess=applyAccessUI;applyAccessUI=()=>{portalAccess();if(memory.currentUser?.role==='owner'&&memory.portal===undefined){memory.portal='owner';document.body.classList.add('owner-portal');$('#ownerModal').classList.remove('hidden');renderOwnerPortal()}if(memory.currentUser?.role!=='owner'){document.body.classList.remove('owner-portal');$('#ownerModal').classList.add('hidden')}syncPortalVisibility()};
 $('#adminBtn').onclick=()=>{if(memory.currentUser?.role!=='owner')return;memory.ownerTab='overview';open('ownerModal')};
 $('#ownerCounter').onclick=()=>{if(discardOwnerDraft()){setOwnerPortal(false);switchView('arena',false);if(historyReady)setHistory('arena',null,'push')}};
 $('#ownerMenuToggle').onclick=()=>{const expanded=$('#ownerMenuToggle').getAttribute('aria-expanded')==='true';$('#ownerMenuToggle').setAttribute('aria-expanded',String(!expanded));$('#ownerTabs').classList.toggle('menu-open',!expanded)};
 function navigateOwner(tab){if(!discardOwnerDraft())return;memory.ownerTab=tab;renderOwnerPortal();$('#ownerTabs').classList.remove('menu-open');$('#ownerMenuToggle').setAttribute('aria-expanded','false');$('#ownerContent').scrollTo?.({top:0});window.scrollTo({top:0})}
 $('#ownerTabs').onclick=e=>{const b=e.target.closest('[data-owner-tab]');if(b)navigateOwner(b.dataset.ownerTab)};
-$('#ownerContent').addEventListener('input',e=>{if(!e.target.matches('input,select,textarea')||e.target.matches('[data-eod-start],[data-eod-end],#eodActualCash,#eodNote'))return;ownerDraft=true;$('#ownerSaveStatus').textContent='Unsaved changes — tap Save'});
+$('#ownerContent').addEventListener('input',e=>{if(!e.target.matches('input,select,textarea')||e.target.matches('[data-eod-start],[data-eod-end],#eodActualCash,#eodNote,[data-finance-search],[data-finance-filter]'))return;ownerDraft=true;$('#ownerSaveStatus').textContent='Unsaved changes — tap Save'});
 $('#ownerContent').addEventListener('change',e=>{if(e.target.matches('[data-staff-active],[data-staff-perm],[data-v-type],[data-v-price],[data-v-ext],[data-v-btype]')){ownerDraft=true;$('#ownerSaveStatus').textContent='Unsaved changes — tap Save'}});
 window.addEventListener('beforeunload',e=>{if(ownerDraft){e.preventDefault();e.returnValue=''}});
 function ownerSubnav(items,selected){return `<nav class="owner-section-tabs" aria-label="Section pages">${items.map(([id,name])=>`<button data-owner-sub="${id}" ${selected===id?'class="active" aria-current="page"':''}>${name}</button>`).join('')}</nav>`}
@@ -26,15 +36,15 @@ function renderOwnerPortal(){
  if(section==='overview')content=ownerOverview();
  if(section==='equipment')content=ownerEquipment();
  if(section==='staff')content=ownerStaff();
- if(section==='operations')content=`<div class="panel"><h3>Run the counter</h3><p>Use the same counter your staff sees to start rides, collect cars, and manage waiting customers.</p><div class="operation-links"><button class="primary" data-counter-view="arena">Open Counter</button><button class="secondary" data-counter-view="queue">Open Waiting</button><button class="secondary" data-counter-view="rides">View Transactions</button></div></div>`;
+ if(section==='operations')content=wsOperationsPage();
  if(section==='activities')content=ownerSubnav([['activities','Activities & battery policy'],['pricing','Packages & extensions']],tab)+(tab==='pricing'?ownerPricing():activityOSSettings());
  if(section==='finance')content=ownerSubnav([['finance','Sales, expenses & closing'],['partners','Partners & investment']],tab)+(tab==='partners'?partnerDashboard():ownerEod());
  if(section==='settings')content=ownerSubnav([['settings','Business & alarm'],['backup','Backup & data']],tab)+(tab==='backup'?ownerBackup():ownerSettings());
- c.innerHTML=content;if(section==='overview'){c.querySelector('.owner-home-grid')?.remove();const summary=document.createElement('div');summary.className='owner-live-summary';summary.innerHTML=`<div><strong>${data.rides.filter(r=>!r.endedAt).length}</strong><span>Active rides</span></div><div><strong>${data.queue.length}</strong><span>Waiting</span></div><div><strong>${data.vehicles.filter(v=>v.active!==false&&activityForVehicle(v)&&vehicleState(v)==='available').length}</strong><span>Cars ready</span></div>`;c.prepend(summary);}$('#ownerConsoleTitle').textContent=ownerSectionNames[section]||'Owner portal';$$('[data-owner-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.ownerTab===section);if(b.dataset.ownerTab===section)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+ c.innerHTML=content;$('#ownerConsoleTitle').textContent=ownerSectionNames[section]||'Owner portal';$$('[data-owner-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.ownerTab===section);if(b.dataset.ownerTab===section)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
  bindOwnerActions();bindActivityOSActions();
  $$('[data-owner-sub]').forEach(b=>b.onclick=()=>navigateOwner(b.dataset.ownerSub));$$('[data-owner-goto]').forEach(b=>b.onclick=()=>navigateOwner(b.dataset.ownerGoto));$$('[data-counter-view]').forEach(b=>b.onclick=()=>{if(!discardOwnerDraft())return;setOwnerPortal(false);switchView(b.dataset.counterView)});
  c.querySelectorAll('.owner-autosave-note').forEach(e=>e.remove());
- labelOwnerFields(c);if(tab==='pricing')tidyPricingEditors(c);markOwnerSaved();
+ labelOwnerFields(c);if(tab==='pricing')tidyPricingEditors(c);if(tab==='partners')bindFinanceDashboard(c);decorateWorkspace(c,tab);markOwnerSaved();
 }
 function labelOwnerFields(root){const labels={'vName':'Equipment name','vCode':'Equipment code','vType':'Equipment type','vPrice':'Pricing profile','vExt':'Extension profile','vBtype':'Battery type','pName':'Package name','pProf':'Pricing profile','pMin':'Duration (minutes)','pPrice':'Price (₹)','eName':'Extension name','eProf':'Extension profile','eMin':'Extra minutes','ePrice':'Price (₹)','bCode':'Battery code','bType':'Battery type','btName':'Battery type name','btVolt':'Voltage','btCap':'Capacity','btConn':'Connector','staffName':'Operator name','staffPin':'Operator PIN','typeName':'Equipment type name','priceProfile':'Pricing profile name','extProfile':'Extension profile name'};root.querySelectorAll('.editor-grid input,.editor-grid select,.add-row input').forEach(input=>{const key=Object.keys(labels).find(k=>input.dataset[k]!==undefined);if(!key||input.parentElement.tagName==='LABEL')return;const label=document.createElement('label');label.textContent=labels[key];input.before(label);label.append(input)})}
 const portalFleet=renderFleet;renderFleet=()=>{const expanded=new Set([...document.querySelectorAll('#fleet .ride-more[open]')].map(e=>e.closest('.car-card').querySelector('[data-end]')?.dataset.end||e.closest('.car-card').querySelector('[data-swap]')?.dataset.swap));portalFleet();const fleet=$('#fleet');if(!fleet)return;
@@ -60,3 +70,10 @@ function tidyPricingEditors(root){
   }
  }
 }
+
+$('#accountToggle').onclick=()=>{const panel=$('#accountPopover'),on=panel.hidden;if(on){const rect=document.querySelector('.topbar').getBoundingClientRect();panel.style.top=`${rect.bottom+8}px`;}panel.hidden=!on;$('#accountToggle').setAttribute('aria-expanded',String(on))};
+document.addEventListener('click',e=>{if(!e.target.closest('#accountMenu,#accountPopover'))closeAccountMenu()});
+$('#accountPopover').addEventListener('click',e=>{if(e.target.closest('button'))closeAccountMenu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const wasOpen=!$('#accountPopover').hidden;closeAccountMenu();if(wasOpen)$('#accountToggle').focus()}});
+window.addEventListener('resize',closeAccountMenu);
+window.addEventListener('scroll',closeAccountMenu,{passive:true});
