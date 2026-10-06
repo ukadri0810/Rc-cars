@@ -1,5 +1,5 @@
-const CACHE='kas-activityos-v4.4';
-const STATIC=['./','./index.html','./style.css?v=4.4','./portal.css?v=4.4','./finance.css?v=4.4','./workspace.css?v=4.4','./app.js?v=4.4','./activity-os.js?v=4.4','./portal-ui.js?v=4.4','./finance-ui.js?v=4.4','./settlement.js?v=4.4','./workspace-ui.js?v=4.4','./manifest.json','./assets/kas-logo.png','./assets/icon-192.png','./assets/icon-512.png','./assets/time-over-ringer.wav'];
+const CACHE='kas-activityos-v4.5';
+const STATIC=['./','./index.html','./style.css?v=4.5','./portal.css?v=4.5','./finance.css?v=4.5','./workspace.css?v=4.5','./navigation.css?v=4.5','./app.js?v=4.5','./activity-os.js?v=4.5','./portal-ui.js?v=4.5','./finance-ui.js?v=4.5','./settlement.js?v=4.5','./workspace-ui.js?v=4.5','./equipment-ui.js?v=4.5','./navigation-ui.js?v=4.5','./manifest.json','./assets/kas-logo.png','./assets/icon-192.png','./assets/icon-512.png','./assets/time-over-ringer.wav'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(STATIC.map(url=>new Request(url,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('kas-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',event=>{

@@ -8,10 +8,11 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/kas-logo.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=4.4">
-  <link rel="stylesheet" href="portal.css?v=4.4">
-  <link rel="stylesheet" href="finance.css?v=4.4">
-  <link rel="stylesheet" href="workspace.css?v=4.4">
+  <link rel="stylesheet" href="style.css?v=4.5">
+  <link rel="stylesheet" href="portal.css?v=4.5">
+  <link rel="stylesheet" href="finance.css?v=4.5">
+  <link rel="stylesheet" href="workspace.css?v=4.5">
+  <link rel="stylesheet" href="navigation.css?v=4.5">
   <title>KAS Activity Operations</title>
 </head>
 <body class="signed-out">
@@ -59,24 +60,23 @@
     </div>
     <div class="top-actions">
       <div class="sync-status" id="syncStatus" role="status" aria-live="polite"><span class="sync-dot"></span><span id="syncStatusText">Local</span></div>
-      <div class="account-menu" id="accountMenu"><button class="account-toggle" id="accountToggle" type="button" aria-expanded="false" aria-controls="accountPopover">Account</button></div>
+      <div class="account-menu" id="accountMenu"><button class="account-toggle" id="accountToggle" type="button" aria-expanded="false" aria-controls="appNavigation">Menu</button></div>
     </div>
   </header>
 
-  <div class="account-popover" id="accountPopover" hidden aria-label="Account actions">
-    <button class="admin-btn hidden" id="adminBtn" type="button">Owner portal</button>
-    <button class="admin-btn sound-only" id="soundTest" type="button">Test alarm</button>
-    <button class="admin-btn hidden" id="installBtn" type="button">Install app</button>
-    <button class="admin-btn hidden" id="logoutBtn" type="button">Sign out</button>
-  </div>
+  <div id="navigationBackdrop" hidden></div>
+  <aside class="app-navigation" id="appNavigation" hidden aria-label="Application navigation">
+    <div class="navigation-heading"><strong>Where do you want to go?</strong><button id="closeNavigation" type="button" aria-label="Close menu">×</button></div>
+    <nav id="navigationLinks" aria-label="Pages"></nav>
+    <div class="navigation-footer">
+      <button id="adminBtn" class="hidden" type="button" hidden>Owner portal</button>
+      <button id="soundTest" type="button">Test alarm</button>
+      <button id="installBtn" class="hidden" type="button">Install app</button>
+      <button id="logoutBtn" class="hidden" type="button">Sign out</button>
+    </div>
+  </aside>
 
   <main class="wrap" id="counterWorkspace" hidden>
-    <nav class="desktop-module-nav" id="desktopModuleNav" aria-label="Main navigation">
-      <button class="active" data-view="arena" data-permission="arena"><svg><use href="#i-home"/></svg> Counter</button>
-      <button data-view="queue" data-permission="queue"><svg><use href="#i-queue"/></svg> Waiting</button>
-      <button data-view="rides" data-permission="rides"><svg><use href="#i-history"/></svg> Today</button>
-      <button data-view="batteries" data-permission="batteries"><svg><use href="#i-battery"/></svg> Equipment</button>
-    </nav>
     <section class="summary" id="summaryCards">
       <div><strong id="activeCount">0</strong><span>Playing now</span></div>
       <div><strong id="readyCount">0</strong><span>Cars ready</span></div>
@@ -137,13 +137,7 @@
 
   </main>
 
-  <nav class="bottom-nav hidden" id="mainNav" hidden aria-label="Main navigation">
-    <button class="active" data-view="arena" data-permission="arena"><svg><use href="#i-home"/></svg><span>Counter</span></button>
-    <button data-view="queue" data-permission="queue"><svg><use href="#i-queue"/></svg><span>Waiting</span><b id="queueBadge" class="badge hidden">0</b></button>
-    <button data-view="rides" data-permission="rides"><svg><use href="#i-history"/></svg><span>Transactions</span></button>
-    <button data-view="batteries" data-permission="batteries"><svg><use href="#i-battery"/></svg><span>Equipment</span></button>
-  </nav>
-
+  <nav id="mainNav" hidden aria-label="Legacy navigation"></nav>
 
   <div class="login-screen" id="loginScreen">
     <div class="login-card">
@@ -266,29 +260,20 @@
   </div>
 
   <section class="owner-workspace hidden" id="ownerModal" hidden aria-label="Owner portal">
-    <aside class="owner-navigation"><div class="owner-nav-heading"><span>OWNER PORTAL</span><button id="ownerMenuToggle" aria-expanded="false" aria-controls="ownerTabs" type="button">Menu</button></div>
-      <nav id="ownerTabs" class="owner-tabs" aria-label="Owner navigation">
-        <button data-owner-tab="overview">Overview</button>
-        <button data-owner-tab="operations">Operations</button>
-        <button data-owner-tab="equipment">Equipment</button>
-        <button data-owner-tab="activities">Activities & Pricing</button>
-        <button data-owner-tab="finance">Finance</button>
-        <button data-owner-tab="staff">Staff</button>
-        <button data-owner-tab="settings">Settings</button>
-        <button id="ownerCounter" type="button">Switch to Counter</button>
-      </nav>
-    </aside>
-    <div class="owner-page"><div class="owner-page-head"><div><div class="eyebrow">KARDE ADVENTURE SPORTS</div><h2 id="ownerConsoleTitle">Overview</h2></div><span id="ownerSaveStatus" role="status">All changes saved</span></div><div id="ownerContent" class="owner-content"></div></div>
+    <div id="ownerTabs" hidden><button id="ownerCounter" type="button">Back to Counter</button></div>
+    <div class="owner-page"><div class="owner-page-head"><div><button class="page-back" id="backToCounter" type="button">← Counter</button><h2 id="ownerConsoleTitle">Overview</h2></div><span id="ownerSaveStatus" role="status">All changes saved</span></div><div id="ownerContent" class="owner-content"></div></div>
   </section>
 
   <audio id="ringer" src="assets/time-over-ringer.wav" preload="auto"></audio>
   <input id="importFile" type="file" accept="application/json" hidden>
   <div id="toast" class="toast"></div>
-  <script src="app.js?v=4.4"></script>
-  <script src="activity-os.js?v=4.4"></script>
-  <script src="portal-ui.js?v=4.4"></script>
-  <script src="finance-ui.js?v=4.4"></script>
-  <script src="settlement.js?v=4.4"></script>
-  <script src="workspace-ui.js?v=4.4"></script>
+  <script src="app.js?v=4.5"></script>
+  <script src="activity-os.js?v=4.5"></script>
+  <script src="portal-ui.js?v=4.5"></script>
+  <script src="finance-ui.js?v=4.5"></script>
+  <script src="settlement.js?v=4.5"></script>
+  <script src="workspace-ui.js?v=4.5"></script>
+  <script src="equipment-ui.js?v=4.5"></script>
+  <script src="navigation-ui.js?v=4.5"></script>
 </body>
 </html>
